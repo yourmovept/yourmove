@@ -1,0 +1,4293 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Your Move">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#111110">
+<title>Your Move — PT Coach</title>
+<link id="apple-touch-icon-tag" rel="apple-touch-icon">
+<link id="favicon-tag" rel="icon" type="image/png">
+<script>
+// Set PWA icon from embedded base64 — must run before page loads
+(function() {
+  var iconUrl = "https://raw.githubusercontent.com/yourmovept/yourmove/main/icon_0.png";
+  var img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = function() {
+    var canvas = document.createElement('canvas');
+    canvas.width = 180; canvas.height = 180;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, 180, 180);
+    canvas.toBlob(function(blob) {
+      var url = URL.createObjectURL(blob);
+      document.getElementById('apple-touch-icon-tag').href = url;
+      document.getElementById('favicon-tag').href = url;
+    }, 'image/png');
+  };
+  img.src = iconUrl;
+})();
+</script>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #111110;
+    --surface: #1a1a19;
+    --surface2: #222221;
+    --border: #2f2f2d;
+    --accent: #c0392b;
+    --accent2: #d94f40;
+    --accent3: #e8784a;
+    --text: #f0eeeb;
+    --muted: #7a7875;
+    --danger: #e03020;
+    --success: #6abf5e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.25;
+  }
+
+  h1, h2, h3, h4 { font-family: 'Cormorant Garamond', 'Syne', serif; letter-spacing: 0.5px; }
+
+  /* LAYOUT */
+  .app { display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+    transition: transform 0.3s ease;
+  }
+
+  .logo {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-mark {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .nav { padding: 16px 12px; flex: 1; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+
+  .nav-item.active {
+    color: var(--accent);
+    background: rgba(192,57,43,0.08);
+    border-color: rgba(192,57,43,0.15);
+  }
+
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .sidebar-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* MAIN */
+  .main {
+    margin-left: 240px;
+    flex: 1;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .topbar-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+
+  .btn {
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0a0f;
+  }
+
+  .btn-primary:hover { background: #d94f40; transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-danger {
+    background: rgba(224,48,32,0.1);
+    color: var(--danger);
+    border: 1px solid rgba(224,48,32,0.2);
+  }
+
+  .btn-danger:hover { background: rgba(224,48,32,0.2); }
+
+  .content { padding: 32px; }
+
+  /* VIEWS */
+  .view { display: none; animation: fadeIn 0.3s ease; }
+  .view.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(192,57,43,0.5); }
+    70% { box-shadow: 0 0 0 10px rgba(192,57,43,0); }
+    100% { box-shadow: 0 0 0 0 rgba(192,57,43,0); }
+  }
+  .listening { animation: pulse-ring 1.2s ease-out infinite !important; background: rgba(192,57,43,0.25) !important; }
+
+  /* DASHBOARD */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 60px; height: 60px;
+    border-radius: 0 12px 0 60px;
+    background: rgba(192,57,43,0.05);
+  }
+
+  .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; color: var(--accent); }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* CLIENT CARDS */
+  .clients-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .client-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .client-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+
+  .client-card:hover { border-color: rgba(192,57,43,0.3); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .client-card:hover::before { transform: scaleX(1); }
+
+  .client-avatar {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #c0392b, #c0392b);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    color: #0a0a0f;
+    margin-bottom: 16px;
+  }
+
+  .client-name { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .client-goal {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(192,57,43,0.1);
+    color: var(--accent);
+    display: inline-block;
+    margin-bottom: 16px;
+  }
+
+  .client-meta { display: flex; gap: 16px; }
+  .meta-item { font-size: 12px; color: var(--muted); }
+  .meta-item span { display: block; color: var(--text); font-weight: 500; font-size: 14px; }
+
+  .client-actions { display: flex; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+  /* FORM */
+  .form-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .form-overlay.open { display: flex; }
+
+  .form-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 680px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .form-header {
+    padding: 24px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0;
+    background: var(--surface);
+    z-index: 10;
+  }
+
+  .form-header h2 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; }
+
+  .close-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .close-btn:hover { color: var(--text); border-color: var(--text); }
+
+  .form-body { padding: 28px; }
+
+  .form-section {
+    margin-bottom: 28px;
+  }
+
+  .form-section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-row.single { grid-template-columns: 1fr; }
+  .form-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; }
+
+  .field input, .field select, .field textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent);
+  }
+
+  .field textarea { resize: vertical; min-height: 80px; }
+
+  .field select option { background: var(--surface2); }
+
+  .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+  .checkbox-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--muted);
+    transition: all 0.2s;
+    background: var(--surface2);
+  }
+
+  .checkbox-item.selected {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(192,57,43,0.08);
+  }
+
+  .checkbox-item input { display: none; }
+
+  .form-footer {
+    padding: 20px 28px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  /* CLIENT DETAIL */
+  .detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+  }
+
+  .detail-avatar {
+    width: 72px; height: 72px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #c0392b, #c0392b);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: #0a0a0f;
+    flex-shrink: 0;
+  }
+
+  .detail-info { flex: 1; }
+  .detail-name { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+  .detail-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+
+  .tag {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .tag-green { background: rgba(192,57,43,0.1); color: var(--accent); border: 1px solid rgba(192,57,43,0.2); }
+  .tag-blue { background: rgba(192,57,43,0.1); color: var(--accent2); border: 1px solid rgba(192,57,43,0.2); }
+  .tag-red { background: rgba(224,48,32,0.1); color: var(--danger); border: 1px solid rgba(224,48,32,0.2); }
+
+  .bio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .bio-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .bio-value { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent); }
+  .bio-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 24px;
+    transition: color 0.2s;
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    padding: 0;
+  }
+
+  .back-btn:hover { color: var(--accent); }
+
+  .empty-state {
+    text-align: center;
+    padding: 64px 32px;
+    color: var(--muted);
+  }
+
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+
+  /* GUIDELINES PANEL */
+  .guidelines-box {
+    background: rgba(192,57,43,0.04);
+    border: 1px solid rgba(192,57,43,0.15);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 24px;
+  }
+
+  .guidelines-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .guideline-item {
+    display: flex;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(192,57,43,0.08);
+    font-size: 13px;
+  }
+
+  .guideline-item:last-child { border-bottom: none; }
+  .guideline-key { color: var(--muted); width: 140px; flex-shrink: 0; }
+  .guideline-val { color: var(--text); }
+
+  /* EXERCISE ROWS */
+  .exercise-row {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 10px;
+    position: relative;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .exercise-row:hover { border-color: rgba(192,57,43,0.2); }
+
+  .exercise-row-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .exercise-row-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(192,57,43,0.1);
+    border: 1px solid rgba(192,57,43,0.2);
+    border-radius: 4px;
+    padding: 2px 8px;
+    flex-shrink: 0;
+  }
+
+  .exercise-sets {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .set-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 1fr 1fr 1fr auto;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .set-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .set-row input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    text-align: center;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  .set-row input:focus { border-color: var(--accent); }
+
+  .set-header {
+    display: grid;
+    grid-template-columns: 32px 1fr 1fr 1fr 1fr auto;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .set-col-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    text-align: center;
+  }
+
+  .del-set-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.2s;
+    width: 28px;
+  }
+
+  .del-set-btn:hover { color: var(--danger); }
+
+  /* SUGGESTION BADGE */
+  .suggestion-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(192,57,43,0.08);
+    border: 1px solid rgba(192,57,43,0.2);
+    border-radius: 6px;
+    padding: 4px 10px;
+    margin-top: 6px;
+  }
+
+  /* SESSION CARDS */
+  .session-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .session-card:hover { border-color: rgba(192,57,43,0.25); }
+
+  .session-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .session-date-badge {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+  }
+
+  .exercise-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .muscle-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(192,57,43,0.1);
+    color: var(--accent2);
+    border: 1px solid rgba(192,57,43,0.15);
+  }
+
+  /* PROGRESS CHART */
+  .progress-muscle-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  .progress-muscle-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .chart-wrap {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  canvas.progress-chart {
+    max-width: 100%;
+    height: 140px !important;
+  }
+
+  .volume-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .volume-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .volume-val { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--accent2); }
+  .volume-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* PERIODIZATION MODULE */
+  .macro-timeline {
+    display: flex;
+    gap: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+
+  .meso-col {
+    flex: 1;
+    border-right: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+  .meso-col:last-child { border-right: none; }
+
+  .meso-col-header {
+    padding: 14px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .meso-col-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .meso-col:nth-child(1) .meso-col-header::after { background: #60b4f0; }
+  .meso-col:nth-child(2) .meso-col-header::after { background: #c0392b; }
+  .meso-col:nth-child(3) .meso-col-header::after { background: #f06090; }
+
+  .meso-phase-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .meso-col:nth-child(1) .meso-phase-tag { color: #60b4f0; }
+  .meso-col:nth-child(2) .meso-phase-tag { color: #c0392b; }
+  .meso-col:nth-child(3) .meso-phase-tag { color: #f06090; }
+
+  .meso-col-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .meso-col-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .meso-weeks-list {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .micro-week {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .micro-week:hover { border-color: rgba(192,57,43,0.3); }
+  .micro-week.has-sessions { border-color: rgba(192,57,43,0.25); }
+  .micro-week.deload { border-color: rgba(240,192,96,0.3); background: rgba(240,192,96,0.05); }
+
+  .micro-week-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .week-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .week-badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  .week-badge-deload { background: rgba(240,192,96,0.15); color: #f0c060; }
+  .week-badge-active { background: rgba(192,57,43,0.1); color: var(--accent); }
+
+  .week-sessions-row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+
+  .session-dot {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Syne', sans-serif;
+  }
+
+  .session-dot.filled { background: rgba(192,57,43,0.15); border-color: rgba(192,57,43,0.4); color: var(--accent); }
+  .session-dot.add-dot { border-style: dashed; }
+  .session-dot:hover { border-color: var(--accent); color: var(--accent); }
+
+  .macro-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .macro-summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .macro-summary-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .macro-summary-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* MACRO FORM */
+  .week-config-row {
+    display: grid;
+    grid-template-columns: 60px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .week-config-row:last-child { border-bottom: none; }
+
+  .week-config-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .session-plan-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .session-plan-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .session-plan-item.planned { border-color: rgba(192,57,43,0.4); color: var(--accent); background: rgba(192,57,43,0.08); }
+
+  .perio-type-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .perio-type-option {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    font-size: 13px;
+  }
+
+  .perio-type-option.selected { border-color: var(--accent); background: rgba(192,57,43,0.08); color: var(--accent); }
+  .perio-type-option .pt-icon { font-size: 22px; margin-bottom: 6px; }
+  .perio-type-option .pt-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; }
+  .perio-type-option .pt-desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.3; }
+
+  /* CLIENT PORTAL */
+  .portal-hero {
+    background: linear-gradient(135deg, var(--surface2) 0%, #1a1710 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .portal-hero::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(192,57,43,0.09) 0%, transparent 70%);
+  }
+  .portal-client-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .portal-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .portal-section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  /* WEEK PLAN TABLE */
+  .week-plan-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .week-plan-row {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+  }
+  .week-plan-row.done { border-color: rgba(192,57,43,0.25); }
+  .week-plan-row.today { border-color: var(--accent); background: rgba(192,57,43,0.05); }
+  .session-name-label {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .session-muscles-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  /* FEEDBACK */
+  .feedback-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .feedback-scores {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .feedback-score-item {
+    text-align: center;
+    min-width: 60px;
+  }
+  .feedback-score-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .feedback-score-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+  .emoji-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .emoji-btn {
+    font-size: 22px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    cursor: pointer;
+    transition: all 0.15s;
+    ```
+line-height: 1;
+```
+
+}
+.emoji-btn.selected { border-color: var(–accent); background: rgba(192,57,43,0.1); transform: scale(1.15); }
+.emoji-btn:hover { border-color: var(–accent); }
+.scale-slider {
+-webkit-appearance: none;
+width: 100%;
+height: 6px;
+border-radius: 3px;
+background: var(–surface2);
+outline: none;
+margin-top: 8px;
+}
+.scale-slider::-webkit-slider-thumb {
+-webkit-appearance: none;
+width: 20px; height: 20px;
+border-radius: 50%;
+background: var(–accent);
+cursor: pointer;
+border: 2px solid #0a0a0f;
+}
+/* PROGRESS MINI */
+.mini-progress-row {
+display: flex;
+align-items: center;
+gap: 12px;
+padding: 10px 0;
+border-bottom: 1px solid var(–border);
+}
+.mini-progress-row:last-child { border-bottom: none; }
+.mini-muscle-label { width: 110px; font-size: 13px; flex-shrink: 0; }
+.mini-bar-wrap { flex: 1; background: var(–surface2); border-radius: 4px; height: 8px; overflow: hidden; }
+.mini-bar { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #c0392b, #c0392b); transition: width 0.5s; }
+.mini-load-label { font-size: 13px; font-weight: 600; color: var(–accent); width: 60px; text-align: right; flex-shrink: 0; }
+/* PDF PRINT */
+@media print {
+.sidebar, .topbar, #btn-export-pdf, #btn-add-feedback,
+.portal-client-select, .nav-item, button { display: none !important; }
+.main { margin-left: 0 !important; }
+.portal-section { break-inside: avoid; page-break-inside: avoid; }
+body { background: white !important; color: black !important; }
+:root { –bg:#fff;–surface:#f8f8f8;–surface2:#f0f0f0;–border:#ddd;–text:#111;–muted:#666;–accent:#5a9a00; }
+}
+
+/* SCROLL */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(–border); border-radius: 3px; }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+.sidebar { transform: translateX(-100%); }
+.sidebar.open { transform: translateX(0); }
+.main { margin-left: 0; }
+.form-row { grid-template-columns: 1fr; }
+.form-row.triple { grid-template-columns: 1fr 1fr; }
+.content { padding: 20px; }
+.topbar { padding: 16px 20px; }
+}
+
+.menu-toggle {
+display: none;
+background: none;
+border: none;
+color: var(–text);
+font-size: 22px;
+cursor: pointer;
+}
+
+@media (max-width: 768px) { .menu-toggle { display: block; } }
+
+/* ALERT */
+.alert {
+padding: 12px 16px;
+border-radius: 8px;
+font-size: 13px;
+margin-bottom: 16px;
+display: flex;
+align-items: flex-start;
+gap: 10px;
+}
+
+.alert-warning { background: rgba(240,192,96,0.1); border: 1px solid rgba(240,192,96,0.2); color: #f0c060; }
+.alert-info { background: rgba(192,57,43,0.1); border: 1px solid rgba(192,57,43,0.2); color: var(–accent2); }
+
+/* PERIODIZATION */
+.macro-bar {
+display: grid;
+grid-template-columns: 1fr 1fr 1fr;
+gap: 2px;
+margin-bottom: 24px;
+border-radius: 10px;
+overflow: hidden;
+}
+
+.meso-block {
+background: var(–surface);
+border: 1px solid var(–border);
+padding: 16px;
+text-align: center;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.meso-block:hover, .meso-block.active { background: var(–surface2); border-color: var(–accent); }
+.meso-label { font-size: 11px; color: var(–muted); text-transform: uppercase; letter-spacing: 1px; }
+.meso-name { font-family: ‘Syne’, sans-serif; font-weight: 700; margin-top: 4px; }
+.meso-weeks { font-size: 12px; color: var(–accent); margin-top: 4px; }
+
+</style>
+</head>
+<body>
+
+<div id="ashell-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9998;background:#1a1a19;border-top:2px solid #c0392b;padding:12px 20px;font-family:'DM Sans',sans-serif">
+  <div style="max-width:600px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:13px;font-weight:600;color:#f0eeeb;margin-bottom:2px">🎙️ Para usar o microfone no iPhone</div>
+      <div style="font-size:12px;color:#7a7875">Abre a-Shell → corre o comando abaixo → vai ao link no Safari</div>
+    </div>
+    <div style="background:#222221;border:1px solid #2f2f2d;border-radius:8px;padding:8px 14px;font-family:monospace;font-size:12px;color:#c0392b;white-space:nowrap">
+      python3 -m http.server 8080
+    </div>
+    <a id="localhost-link" href="#" style="background:#c0392b;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap">
+      Abrir em localhost →
+    </a>
+    <button onclick="document.getElementById('ashell-banner').style.display='none'" 
+      style="background:none;border:none;color:#7a7875;font-size:18px;cursor:pointer;padding:4px">✕</button>
+  </div>
+  <div style="max-width:600px;margin:8px auto 0;font-size:11px;color:#4a4845">
+    1. Instala <strong style="color:#f0eeeb">a-Shell</strong> na App Store &nbsp;·&nbsp; 
+    2. No a-Shell: <code style="color:#c0392b">cd ~/Documents && python3 -m http.server 8080</code> &nbsp;·&nbsp; 
+    3. Copia o ficheiro HTML para a pasta Documents do iPhone &nbsp;·&nbsp;
+    4. Carrega em "Abrir em localhost →"
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo" style="padding:12px 14px 10px;border-bottom:1px solid var(--border)">
+      <img src="https://raw.githubusercontent.com/yourmovept/yourmove/main/logo.jpg" alt="Your Move Fitness Boutique" 
+        style="width:100%;max-width:180px;display:block;border-radius:8px;background:#fff;padding:8px">
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="navigate('dashboard')">
+        <span class="nav-icon">⊞</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="navigate('clients')">
+        <span class="nav-icon">◎</span> Clientes
+      </div>
+      <div class="nav-item" onclick="navigate('sessions')">
+        <span class="nav-icon">▷</span> Sessões
+      </div>
+      <div class="nav-item" onclick="navigate('progress')">
+        <span class="nav-icon">↗</span> Progressão
+      </div>
+      <div class="nav-item" onclick="navigate('periodization')">
+        <span class="nav-icon">◈</span> Periodização
+      </div>
+      <div class="nav-item" onclick="navigate('client-portal')">
+        <span class="nav-icon">⬡</span> Vista Cliente
+      </div>
+    </nav>
+    <div class="sidebar-footer" style="text-align:center"><a href="https://yourmove.pt" style="color:var(--accent);text-decoration:none;font-size:11px">yourmove.pt</a> · Praia da Luz</div>
+  </aside>
+
+  <!-- MAIN -->
+
+  <main class="main">
+    <div class="topbar" style="background:var(--surface);border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:16px">
+        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+      </div>
+      <button class="btn btn-primary" id="topbar-action" onclick="openNewClient()">+ Novo Cliente</button>
+    </div>
+
+```
+<div class="content">
+
+  <!-- DASHBOARD VIEW -->
+  <div class="view active" id="view-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Clientes</div>
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-sub">ativos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sessões Esta Semana</div>
+        <div class="stat-value" id="stat-sessions">0</div>
+        <div class="stat-sub">registadas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Objetivos Ativos</div>
+        <div class="stat-value" id="stat-goals">—</div>
+        <div class="stat-sub">hipertrofia / força / saúde</div>
+      </div>
+    </div>
+
+    <div class="section-title">Clientes Recentes</div>
+    <div class="clients-grid" id="dashboard-clients">
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-icon">◎</div>
+        <div class="empty-title">Sem clientes ainda</div>
+        <p style="margin-bottom:20px;font-size:14px">Adiciona o teu primeiro cliente para começar.</p>
+        <button class="btn btn-primary" onclick="openNewClient()">+ Adicionar Cliente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTS VIEW -->
+  <div class="view" id="view-clients">
+    <div class="clients-grid" id="clients-grid">
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-icon">◎</div>
+        <div class="empty-title">Sem clientes</div>
+        <p style="margin-bottom:20px;font-size:14px">Começa por adicionar o teu primeiro cliente.</p>
+        <button class="btn btn-primary" onclick="openNewClient()">+ Adicionar Cliente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENT DETAIL VIEW -->
+  <div class="view" id="view-client-detail">
+    <button class="back-btn" onclick="navigate('clients')">← Voltar aos Clientes</button>
+    <div id="client-detail-content"></div>
+  </div>
+
+  <!-- SESSIONS VIEW -->
+  <div class="view" id="view-sessions">
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+      <div class="field" style="min-width:200px;flex:1">
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Cliente</label>
+        <select id="session-client-filter" onchange="renderSessionsView()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%">
+          <option value="">Todos os clientes</option>
+        </select>
+      </div>
+      <div class="field" style="min-width:160px">
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Grupo Muscular</label>
+        <select id="session-muscle-filter" onchange="renderSessionsView()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%">
+          <option value="">Todos</option>
+          <option value="peito">Peito</option>
+          <option value="costas">Costas</option>
+          <option value="ombros">Ombros</option>
+          <option value="biceps">Bíceps</option>
+          <option value="triceps">Tríceps</option>
+          <option value="quadricipite">Quadricípite</option>
+          <option value="isquiotibiais">Isquiotibiais</option>
+          <option value="gluteos">Glúteos</option>
+          <option value="gemeos">Gémeos</option>
+          <option value="abdominais">Abdominais</option>
+          <option value="antebracos">Antebraços</option>
+          <option value="full_body">Full Body</option>
+        </select>
+      </div>
+    </div>
+    <div id="sessions-list"></div>
+  </div>
+
+  <!-- PROGRESS VIEW -->
+  <div class="view" id="view-progress">
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+      <div class="field" style="min-width:200px;flex:1">
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Cliente</label>
+        <select id="progress-client-filter" onchange="renderProgressView()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%">
+          <option value="">Seleciona um cliente</option>
+        </select>
+      </div>
+    </div>
+    <div id="progress-content"></div>
+  </div>
+
+  <!-- CLIENT PORTAL VIEW -->
+  <div class="view" id="view-client-portal">
+    <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap">
+      <div class="field" style="min-width:220px;flex:1">
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Cliente</label>
+        <select id="portal-client-select" onchange="renderClientPortal()"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%">
+          <option value="">Seleciona um cliente...</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary" onclick="exportClientPDF()" id="btn-export-pdf" style="display:none">⬇ Exportar PDF</button>
+      <button class="btn btn-primary" onclick="openFeedbackForm()" id="btn-add-feedback" style="display:none">+ Feedback</button>
+    </div>
+    <div id="portal-content"></div>
+  </div>
+
+  <!-- PERIODIZATION VIEW -->
+  <div class="view" id="view-periodization">
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;flex-wrap:wrap">
+      <div class="field" style="min-width:220px;flex:1">
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Cliente</label>
+        <select id="perio-client-select" onchange="renderPeriodization()"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%">
+          <option value="">Seleciona um cliente...</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btn-new-macro" onclick="openMacroForm()" style="display:none;margin-top:18px">+ Novo Macrociclo</button>
+    </div>
+    <div id="perio-content"></div>
+  </div>
+
+</div>
+```
+
+  </main>
+</div>
+
+<!-- MACRO FORM OVERLAY -->
+
+<div class="form-overlay" id="macro-form-overlay">
+  <div class="form-panel" style="max-width:640px">
+    <div class="form-header">
+      <h2 id="macro-form-title">Novo Macrociclo</h2>
+      <button class="close-btn" onclick="closeMacroForm()">✕</button>
+    </div>
+    <div class="form-body">
+
+```
+  <div class="form-section">
+    <div class="form-section-title">Informação do Macrociclo</div>
+    <div class="form-row">
+      <div class="field">
+        <label>Nome do Macrociclo</label>
+        <input type="text" id="mf-name" placeholder="Ex: Macrociclo Verão 2025, Pré-Competição...">
+      </div>
+      <div class="field">
+        <label>Data de Início</label>
+        <input type="date" id="mf-start">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Tipo de Periodização</div>
+    <div class="perio-type-selector" id="perio-type-selector">
+      <div class="perio-type-option selected" data-type="linear" onclick="selectPerioType(this)">
+        <div class="pt-icon">📈</div>
+        <div class="pt-name">Linear</div>
+        <div class="pt-desc">Volume ↓ Intensidade ↑ ao longo do tempo</div>
+      </div>
+      <div class="perio-type-option" data-type="undulating" onclick="selectPerioType(this)">
+        <div class="pt-icon">〰️</div>
+        <div class="pt-name">Ondulante</div>
+        <div class="pt-desc">Variação de intensidade dentro de cada semana</div>
+      </div>
+      <div class="perio-type-option" data-type="block" onclick="selectPerioType(this)">
+        <div class="pt-icon">⬛</div>
+        <div class="pt-name">Blocos</div>
+        <div class="pt-desc">Foco acumulação → intensificação → realização</div>
+      </div>
+    </div>
+    <div id="perio-type-desc" style="margin-top:12px;padding:12px;background:rgba(192,57,43,0.04);border:1px solid rgba(192,57,43,0.15);border-radius:8px;font-size:13px;color:var(--muted);line-height:1.5">
+      📈 <strong style="color:var(--text)">Periodização Linear</strong> — Recomendada para iniciantes e intermédios. Volume decresce e intensidade aumenta progressivamente de mesociclo para mesociclo. Simples e eficaz para progressão contínua.
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Configuração dos Mesociclos</div>
+    <div id="meso-config-rows">
+      <!-- injected -->
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Sessões por Semana (Microciclo)</div>
+    <div class="form-row triple">
+      <div class="field">
+        <label>Sessões / Semana</label>
+        <input type="number" id="mf-sessions-per-week" min="1" max="7" placeholder="Ex: 4" oninput="updateSessionLabels()">
+      </div>
+      <div class="field" style="grid-column:span 2">
+        <label>Nomes das Sessões (opcional)</label>
+        <div id="session-labels-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Objetivos por Mesociclo</div>
+    <div id="meso-goals-rows"></div>
+  </div>
+
+</div>
+<div class="form-footer">
+  <button class="btn btn-secondary" onclick="closeMacroForm()">Cancelar</button>
+  <button class="btn btn-primary" onclick="saveMacro()">Criar Macrociclo</button>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- NEW SESSION FORM -->
+
+<div class="form-overlay" id="session-form-overlay">
+  <div class="form-panel" style="max-width:780px">
+    <div class="form-header">
+      <h2 id="session-form-title">Nova Sessão de Treino</h2>
+      <button class="close-btn" onclick="closeSessionForm()">✕</button>
+    </div>
+    <div class="form-body">
+
+```
+  <!-- INFO SESSÃO -->
+  <div class="form-section">
+    <div class="form-section-title">Informação da Sessão</div>
+    <div class="form-row triple">
+      <div class="field">
+        <label>Cliente *</label>
+        <select id="sf-client">
+          <option value="">Seleciona...</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Data *</label>
+        <input type="date" id="sf-date">
+      </div>
+      <div class="field">
+        <label>Mesociclo / Semana</label>
+        <div style="display:flex;gap:6px">
+          <input type="number" id="sf-meso" min="1" max="3" placeholder="Meso" style="width:50%">
+          <input type="number" id="sf-week" min="1" max="20" placeholder="Sem" style="width:50%">
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Nome / Tipo da Sessão</label>
+        <input type="text" id="sf-name" placeholder="Ex: Push A, Treino Pernas, Full Body...">
+      </div>
+      <div class="field">
+        <label>Notas da Sessão</label>
+        <input type="text" id="sf-notes" placeholder="Ex: cliente referiu cansaço, bom desempenho...">
+      </div>
+    </div>
+  </div>
+
+  <!-- EXERCÍCIOS -->
+  <div class="form-section">
+    <div class="form-section-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Exercícios</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" type="button" onclick="addExerciseRow()" style="font-size:12px;padding:5px 12px">+ Manual</button>
+        <button class="btn btn-primary" type="button" id="voice-btn" onclick="toggleVoice()" style="font-size:12px;padding:5px 14px;display:flex;align-items:center;gap:6px">
+          <span id="voice-icon">🎙️</span> <span id="voice-label">Voz</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- VOICE PANEL -->
+    <div id="voice-panel" style="display:none;margin-bottom:16px">
+      <div id="voice-status" style="background:rgba(192,57,43,0.06);border:1px solid rgba(192,57,43,0.2);border-radius:10px;padding:16px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div id="voice-pulse" style="width:12px;height:12px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:all 0.3s"></div>
+          <div>
+            <div id="voice-status-text" style="font-size:14px;font-weight:500">Carrega no microfone para falar</div>
+            <div id="voice-transcript" style="font-size:12px;color:var(--muted);margin-top:3px;min-height:16px;font-style:italic"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="mic-btn" onclick="startListening()"
+          style="width:52px;height:52px;border-radius:50%;border:2px solid var(--accent);background:rgba(192,57,43,0.08);color:var(--accent);font-size:22px;cursor:pointer;transition:all 0.2s;flex-shrink:0"
+          onmouseover="this.style.background='rgba(192,57,43,0.18)'" onmouseout="if(!window.isListening)this.style.background='rgba(192,57,43,0.08)'">
+          🎙️
+        </button>
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Ou escreve aqui em linguagem natural:</div>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="voice-text-input" placeholder='Ex: "Supino 4x10 80kg RIR 2" ou "Leg press 3 séries de 12 com 150"'
+              style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();parseVoiceText(this.value);}">
+            <button class="btn btn-primary" type="button" onclick="parseVoiceText(document.getElementById('voice-text-input').value)" style="font-size:13px;padding:9px 14px;white-space:nowrap">Interpretar</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--muted)">
+        💡 Exemplos: <em>"Agachamento 5 séries de 5 com 100 quilos"</em> · <em>"Puxador 3x12 60kg RIR 3"</em> · <em>"Supino inclinado 4 séries 10 reps 70 kg RPE 8"</em>
+      </div>
+    </div>
+
+    <!-- PROCESSING INDICATOR -->
+    <div id="voice-processing" style="display:none;padding:12px 16px;background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.2);border-radius:8px;margin-bottom:12px;font-size:13px;color:var(--accent2)">
+      <span id="processing-spinner" style="display:inline-block;animation:spin 1s linear infinite">⟳</span> A interpretar comando...
+    </div>
+
+    <div id="exercises-container">
+      <!-- rows injected by JS -->
+    </div>
+    <div style="margin-top:12px;padding:12px;background:rgba(192,57,43,0.04);border:1px dashed rgba(192,57,43,0.2);border-radius:8px;font-size:12px;color:var(--muted)">
+      💡 <strong style="color:var(--accent)">RIR</strong> = Repetições na Reserva (0 = falha, 3 = 3 reps antes da falha) · <strong style="color:var(--accent)">RPE</strong> = Esforço percebido (1–10, onde 10 = esforço máximo)
+    </div>
+  </div>
+
+</div>
+<div class="form-footer">
+  <button class="btn btn-secondary" onclick="closeSessionForm()">Cancelar</button>
+  <button class="btn btn-primary" onclick="saveSession()">Guardar Sessão</button>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- NEW CLIENT FORM -->
+
+<div class="form-overlay" id="form-overlay">
+  <div class="form-panel">
+    <div class="form-header">
+      <h2 id="form-title">Novo Cliente</h2>
+      <button class="close-btn" onclick="closeForm()">✕</button>
+    </div>
+    <div class="form-body">
+
+```
+  <!-- VOICE CLIENT -->
+  <div class="form-section" style="padding-bottom:4px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent)">Preenchimento Rápido por Voz</span>
+      <button class="btn btn-primary" type="button" id="client-voice-btn" onclick="toggleClientVoice()" style="font-size:12px;padding:5px 14px;display:flex;align-items:center;gap:6px">
+        <span>🎙️</span> <span id="client-voice-label">Usar Voz</span>
+      </button>
+    </div>
+    <div id="client-voice-panel" style="display:none;margin-bottom:4px">
+      <div id="client-voice-status" style="background:rgba(192,57,43,0.06);border:1px solid rgba(192,57,43,0.2);border-radius:10px;padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div id="client-voice-pulse" style="width:12px;height:12px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:all 0.3s"></div>
+          <div>
+            <div id="client-voice-status-text" style="font-size:13px;font-weight:500">Carrega no microfone ou escreve abaixo</div>
+            <div id="client-voice-transcript" style="font-size:12px;color:var(--muted);margin-top:2px;min-height:14px;font-style:italic"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="client-mic-btn" onclick="startClientListening()"
+          style="width:48px;height:48px;border-radius:50%;border:2px solid var(--accent);background:rgba(192,57,43,0.08);color:var(--accent);font-size:20px;cursor:pointer;transition:all 0.2s;flex-shrink:0"
+          onmouseover="this.style.background='rgba(192,57,43,0.18)'" onmouseout="if(!window.isClientListening)this.style.background='rgba(192,57,43,0.08)'">
+          🎙️
+        </button>
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:5px">Ou escreve em linguagem natural:</div>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="client-voice-text" placeholder='Ex: "Maria Santos, 28 anos, feminino, objetivo perda de gordura, 4 sessões por semana, 65kg, 162cm"'
+              style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();parseClientVoice(this.value);}">
+            <button class="btn btn-primary" type="button" onclick="parseClientVoice(document.getElementById('client-voice-text').value)" style="font-size:12px;padding:8px 12px;white-space:nowrap">Preencher</button>
+          </div>
+        </div>
+      </div>
+      <div id="client-voice-processing" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.2);border-radius:8px;font-size:12px;color:var(--accent2)">
+        <span style="display:inline-block;animation:spin 1s linear infinite">⟳</span> A interpretar...
+      </div>
+      <div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--muted)">
+        💡 <em>"Ana Costa, 35 anos, hipertrofia, 3x semana, 70kg, 168cm, tem lombalgia"</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- DADOS PESSOAIS -->
+  <div class="form-section">
+    <div class="form-section-title">Dados Pessoais</div>
+    <div class="form-row">
+      <div class="field">
+        <label>Nome Completo *</label>
+        <input type="text" id="f-name" placeholder="Ex: João Silva">
+      </div>
+      <div class="field">
+        <label>Data de Nascimento</label>
+        <input type="date" id="f-dob">
+      </div>
+    </div>
+    <div class="form-row triple">
+      <div class="field">
+        <label>Género</label>
+        <select id="f-gender">
+          <option value="">—</option>
+          <option value="M">Masculino</option>
+          <option value="F">Feminino</option>
+          <option value="O">Outro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Sessões / Semana</label>
+        <input type="number" id="f-sessions-week" min="1" max="7" placeholder="Ex: 3">
+      </div>
+      <div class="field">
+        <label>Nível de Experiência</label>
+        <select id="f-experience">
+          <option value="sedentario">Sedentário</option>
+          <option value="iniciante">Iniciante (&lt;1 ano)</option>
+          <option value="intermedio">Intermédio (1-3 anos)</option>
+          <option value="avancado">Avançado (&gt;3 anos)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- BIOIMPEDÂNCIA -->
+  <div class="form-section">
+    <div class="form-section-title">Bioimpedância</div>
+    <div class="form-row triple">
+      <div class="field">
+        <label>Peso (kg)</label>
+        <input type="number" id="f-weight" step="0.1" placeholder="70.5">
+      </div>
+      <div class="field">
+        <label>Altura (cm)</label>
+        <input type="number" id="f-height" placeholder="175">
+      </div>
+      <div class="field">
+        <label>IMC</label>
+        <input type="number" id="f-bmi" step="0.1" placeholder="Auto" readonly style="opacity:0.6">
+      </div>
+    </div>
+    <div class="form-row triple">
+      <div class="field">
+        <label>% Massa Gorda</label>
+        <input type="number" id="f-fat" step="0.1" placeholder="22.0">
+      </div>
+      <div class="field">
+        <label>% Massa Muscular</label>
+        <input type="number" id="f-muscle" step="0.1" placeholder="38.0">
+      </div>
+      <div class="field">
+        <label>% Água Corporal</label>
+        <input type="number" id="f-water" step="0.1" placeholder="55.0">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Metabolismo Basal (kcal)</label>
+        <input type="number" id="f-bmr" placeholder="1800">
+      </div>
+      <div class="field">
+        <label>Massa Óssea (kg)</label>
+        <input type="number" id="f-bone" step="0.1" placeholder="3.2">
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVEFORCE 2 -->
+  <div class="form-section">
+    <div class="form-section-title">ActiveForce 2 — Força e Amplitude Articular</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:rgba(192,57,43,0.06);border:1px solid rgba(192,57,43,0.15);border-radius:8px">
+      📊 Dados do dinamómetro isocinético portátil — força muscular (N/kg) e amplitude articular (ROM em graus)
+    </div>
+
+    <!-- FORÇA MUSCULAR (Newton/kg) -->
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:10px">Força Muscular (N · Peak Force / kg)</div>
+    <div class="form-row triple">
+      <div class="field"><label>Quadricípite D (N/kg)</label><input type="number" id="af-quad-r" step="0.1" placeholder="Ex: 3.2"></div>
+      <div class="field"><label>Quadricípite E (N/kg)</label><input type="number" id="af-quad-l" step="0.1" placeholder="Ex: 3.0"></div>
+      <div class="field"><label>Ratio Q D/E (%)</label><input type="number" id="af-quad-ratio" step="0.1" placeholder="Auto" readonly style="opacity:0.6"></div>
+    </div>
+    <div class="form-row triple">
+      <div class="field"><label>Isquiotibiais D (N/kg)</label><input type="number" id="af-ham-r" step="0.1" placeholder="Ex: 2.1"></div>
+      <div class="field"><label>Isquiotibiais E (N/kg)</label><input type="number" id="af-ham-l" step="0.1" placeholder="Ex: 2.0"></div>
+      <div class="field"><label>Ratio H/Q D (%)</label><input type="number" id="af-hq-ratio" step="0.1" placeholder="Auto" readonly style="opacity:0.6"></div>
+    </div>
+    <div class="form-row triple">
+      <div class="field"><label>Glúteo D (N/kg)</label><input type="number" id="af-glut-r" step="0.1" placeholder="Ex: 2.8"></div>
+      <div class="field"><label>Glúteo E (N/kg)</label><input type="number" id="af-glut-l" step="0.1" placeholder="Ex: 2.7"></div>
+      <div class="field"><label>Abdutor D (N/kg)</label><input type="number" id="af-abd-r" step="0.1" placeholder="Ex: 2.0"></div>
+    </div>
+    <div class="form-row triple">
+      <div class="field"><label>Abdutor E (N/kg)</label><input type="number" id="af-abd-l" step="0.1" placeholder="Ex: 1.9"></div>
+      <div class="field"><label>Core Flexão (N/kg)</label><input type="number" id="af-core-flex" step="0.1" placeholder="Ex: 1.8"></div>
+      <div class="field"><label>Core Extensão (N/kg)</label><input type="number" id="af-core-ext" step="0.1" placeholder="Ex: 2.2"></div>
+    </div>
+    <div class="form-row triple">
+      <div class="field"><label>Ombro Flex D (N/kg)</label><input type="number" id="af-shoulder-flex-r" step="0.1" placeholder="Ex: 1.5"></div>
+      <div class="field"><label>Ombro Flex E (N/kg)</label><input type="number" id="af-shoulder-flex-l" step="0.1" placeholder="Ex: 1.4"></div>
+      <div class="field"><label>Ombro Ext D (N/kg)</label><input type="number" id="af-shoulder-ext-r" step="0.1" placeholder="Ex: 1.8"></div>
+    </div>
+
+    <!-- AMPLITUDE ARTICULAR (ROM) -->
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 10px">Amplitude Articular — ROM (graus)</div>
+    <div class="form-row triple">
+      <div class="field"><label>Flexão Joelho D (°)</label><input type="number" id="af-knee-flex-r" placeholder="Ex: 140"></div>
+      <div class="field"><label>Flexão Joelho E (°)</label><input type="number" id="af-knee-flex-l" placeholder="Ex: 138"></div>
+      <div class="field"><label>Extensão Anca D (°)</label><input type="number" id="af-hip-ext-r" placeholder="Ex: 20"></div>
+    </div>
+    <div class="form-row triple">
+      <div class="field"><label>Extensão Anca E (°)</label><input type="number" id="af-hip-ext-l" placeholder="Ex: 18"></div>
+      <div class="field"><label>Flexão Ombro D (°)</label><input type="number" id="af-sh-rom-r" placeholder="Ex: 175"></div>
+      <div class="field"><label>Flexão Ombro E (°)</label><input type="number" id="af-sh-rom-l" placeholder="Ex: 170"></div>
+    </div>
+    <div class="form-row triple">
+      <div class="field"><label>Dorsiflexão D (°)</label><input type="number" id="af-ankle-r" placeholder="Ex: 18"></div>
+      <div class="field"><label>Dorsiflexão E (°)</label><input type="number" id="af-ankle-l" placeholder="Ex: 16"></div>
+      <div class="field"><label>Rotação Cervical D (°)</label><input type="number" id="af-neck-r" placeholder="Ex: 70"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Rotação Cervical E (°)</label><input type="number" id="af-neck-l" placeholder="Ex: 68"></div>
+      <div class="field"><label>Data da Avaliação</label><input type="date" id="af-date"></div>
+    </div>
+    <div class="form-row single">
+      <div class="field"><label>Notas / Achados Relevantes</label>
+        <textarea id="af-notes" placeholder="Ex: défice de força no quadricípite esquerdo 15%, limitação ROM dorsiflexão bilateral..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBJETIVO -->
+  <div class="form-section">
+    <div class="form-section-title">Objetivo Principal</div>
+    <div class="form-row single">
+      <div class="field">
+        <label>Objetivo</label>
+        <select id="f-goal" onchange="updateGuidelinesPreview()">
+          <option value="hipertrofia">Hipertrofia (Ganho Muscular)</option>
+          <option value="forca">Força Máxima</option>
+          <option value="perda_gordura">Perda de Gordura</option>
+          <option value="resistencia">Resistência</option>
+          <option value="saude">Saúde Geral</option>
+          <option value="recomposicao">Recomposição Corporal</option>
+        </select>
+      </div>
+    </div>
+    <div id="guidelines-preview" class="guidelines-box">
+      <div class="guidelines-title">⚡ Guidelines Científicas — Hipertrofia</div>
+      <div class="guideline-item"><span class="guideline-key">Repetições</span><span class="guideline-val">6–20 reps (maioria na zona 8-12)</span></div>
+      <div class="guideline-item"><span class="guideline-key">Volume semanal</span><span class="guideline-val">10–20 séries por grupo muscular</span></div>
+      <div class="guideline-item"><span class="guideline-key">Intensidade</span><span class="guideline-val">60–80% 1RM · RIR 0–3</span></div>
+      <div class="guideline-item"><span class="guideline-key">Frequência</span><span class="guideline-val">2x/semana por grupo muscular</span></div>
+      <div class="guideline-item"><span class="guideline-key">Descanso</span><span class="guideline-val">60–180 seg entre séries</span></div>
+      <div class="guideline-item"><span class="guideline-key">Progressão</span><span class="guideline-val">Sobrecar. progressiva · Deload a cada 4-6 sem</span></div>
+    </div>
+  </div>
+
+  <!-- LIMITAÇÕES -->
+  <div class="form-section">
+    <div class="form-section-title">Condições de Saúde / Limitações</div>
+    <div class="form-row single">
+      <div class="field">
+        <label>Seleciona todas as que se aplicam</label>
+        <div class="checkbox-group" id="limitations-group">
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="lombalgia"> Lombalgia</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="joelho"> Joelho (lesão/dor)</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="ombro"> Ombro (lesão/dor)</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="hipertensao"> Hipertensão</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="diabetes"> Diabetes</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="cardio"> Condição Cardíaca</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="osteoporose"> Osteoporose</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="gravidez"> Gravidez / Pós-Parto</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="field">
+        <label>Outras limitações / notas clínicas</label>
+        <textarea id="f-limitations-notes" placeholder="Descreve outras condições, medicação relevante ou restrições específicas..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- EQUIPAMENTO -->
+  <div class="form-section">
+    <div class="form-section-title">Equipamento Disponível</div>
+    <div class="form-row single">
+      <div class="field">
+        <label>Equipamento de força livre</label>
+        <div class="checkbox-group" id="equipment-group">
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="barbell"> Barra Olímpica</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="barbell_ez"> Barra EZ</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="barbell_trap"> Barra Trap/Hex</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="dumbbell"> Halteres Fixos</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="dumbbell_adj"> Halteres Ajustáveis</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="kettlebell"> Kettlebells</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-row single" style="margin-top:10px">
+      <div class="field">
+        <label>Máquinas e cabos</label>
+        <div class="checkbox-group" id="equipment-group-machines">
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="machines"> Máquinas Guiadas</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="cables"> Cabos / Polias</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="smith"> Máquina Smith</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="leg_press"> Leg Press</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="hack_squat"> Hack Squat</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="cable_crossover"> Cross-over</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="lat_pulldown"> Puxador / Lat</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="seated_row"> Remada Sentado</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="chest_press_mach"> Chest Press Máq.</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="shoulder_press_mach"> Shoulder Press Máq.</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="leg_curl"> Leg Curl</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="leg_extension"> Leg Extension</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="hip_thrust_mach"> Hip Thrust Máq.</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="calf_raise_mach"> Calf Raise Máq.</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="adductor"> Adutor / Abdutor</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-row single" style="margin-top:10px">
+      <div class="field">
+        <label>Outros</label>
+        <div class="checkbox-group" id="equipment-group-other">
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="bands"> Elásticos/Bandas</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="trx"> TRX / Suspensão</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="bodyweight"> Peso Corporal</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="pullup_bar"> Barra de Dominadas</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="dip_bar"> Paralelas</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="box"> Caixa Pliométrica</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="bench"> Banco Regulável</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="rack"> Rack / Squat Rack</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="treadmill"> Passadeira</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="bike"> Bicicleta</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="rower"> Remo Ergómetro</label>
+          <label class="checkbox-item" onclick="toggleCheckbox(this)"><input type="checkbox" value="battle_ropes"> Battle Ropes</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-row single" style="margin-top:14px">
+      <div class="field">
+        <label>Adicionar equipamento personalizado</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="f-equipment-custom-input" placeholder="Ex: Slide board, GHD, Anilhas pequenas..." style="flex:1">
+          <button class="btn btn-secondary" type="button" onclick="addCustomEquipment()" style="white-space:nowrap;padding:9px 14px;font-size:13px">+ Adicionar</button>
+        </div>
+        <div class="checkbox-group" id="equipment-group-custom" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="form-footer">
+  <button class="btn btn-secondary" onclick="closeForm()">Cancelar</button>
+  <button class="btn btn-primary" onclick="saveClient()">Guardar Cliente</button>
+</div>
+```
+
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let clients = JSON.parse(localStorage.getItem('ptcoach_clients') || '[]');
+let currentView = 'dashboard';
+let editingId = null;
+
+// ─── GUIDELINES DATA ─────────────────────────────────────────────────────────
+const guidelines = {
+  hipertrofia: {
+    label: 'Hipertrofia (Ganho Muscular)',
+    items: [
+      ['Repetições', '6–20 reps (maioria na zona 8-12)'],
+      ['Volume semanal', '10–20 séries por grupo muscular'],
+      ['Intensidade', '60–80% 1RM · RIR 0–3'],
+      ['Frequência', '2x/semana por grupo muscular'],
+      ['Descanso', '60–180 seg entre séries'],
+      ['Progressão', 'Sobrecarga progressiva · Deload a cada 4-6 sem'],
+    ]
+  },
+  forca: {
+    label: 'Força Máxima',
+    items: [
+      ['Repetições', '1–5 reps'],
+      ['Volume semanal', '3–5 séries por padrão de movimento'],
+      ['Intensidade', '>80% 1RM · RIR 0–1'],
+      ['Frequência', '2–3x/semana padrão de movimento'],
+      ['Descanso', '2–5 min entre séries'],
+      ['Progressão', 'Linear por semana · Periodização ondulante'],
+    ]
+  },
+  perda_gordura: {
+    label: 'Perda de Gordura',
+    items: [
+      ['Repetições', '8–15 reps (preservação muscular)'],
+      ['Volume semanal', '10–15 séries por grupo · manter massa'],
+      ['Intensidade', '60–75% 1RM · RIR 2–4'],
+      ['Cardio', '150–300 min/sem intensidade moderada'],
+      ['Descanso', '45–90 seg (aumenta dispêndio energético)'],
+      ['Progressão', 'Manter força · Défice calórico externo'],
+    ]
+  },
+  resistencia: {
+    label: 'Resistência',
+    items: [
+      ['Repetições', '12–25 reps ou circuitos'],
+      ['Volume semanal', '150+ min/sem moderado · 75+ min intenso'],
+      ['Intensidade', '50–70% 1RM · RPE 5–7'],
+      ['Frequência', '2x/sem força + 3-5x/sem cardio'],
+      ['Descanso', '30–60 seg'],
+      ['Progressão', 'Aumentar volume antes de intensidade'],
+    ]
+  },
+  saude: {
+    label: 'Saúde Geral',
+    items: [
+      ['Repetições', '8–15 reps (ACSM guidelines)'],
+      ['Volume semanal', '150 min/sem moderado + força 2x/sem'],
+      ['Intensidade', '40–60% 1RM (iniciante) → 60-70% (intermédio)'],
+      ['Frequência', 'Full body 2-3x/sem'],
+      ['Descanso', '60–120 seg'],
+      ['Progressão', 'Gradual · Foco em consistência e adesão'],
+    ]
+  },
+  recomposicao: {
+    label: 'Recomposição Corporal',
+    items: [
+      ['Repetições', '6–15 reps (hipertrofia + força)'],
+      ['Volume semanal', '10–16 séries por grupo muscular'],
+      ['Intensidade', '65–80% 1RM · RIR 1–3'],
+      ['Proteína', '>1.6g/kg/dia (crítico para recomposição)'],
+      ['Descanso', '60–120 seg'],
+      ['Progressão', 'Sobrecarga progressiva · TDEE ≈ manutenção'],
+    ]
+  }
+};
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+function navigate(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  currentView = view;
+  document.getElementById('view-' + view).classList.add('active');
+
+  const navMap = {
+    dashboard: 0, clients: 1, sessions: 2, progress: 3, periodization: 4,
+    'client-detail': 1,
+    'client-portal': 4
+  };
+  const navItems = document.querySelectorAll('.nav-item');
+  if (navMap[view] !== undefined) navItems[navMap[view]]?.classList.add('active');
+
+  const titles = {
+    dashboard: 'Dashboard',
+    clients: 'Clientes',
+    sessions: 'Sessões',
+    progress: 'Progressão',
+    periodization: 'Periodização',
+    'client-detail': 'Perfil do Cliente',
+    'client-portal': 'Vista do Cliente'
+  };
+  document.getElementById('topbar-title').textContent = titles[view] || view;
+
+  const actionMap = {
+    dashboard: '+ Novo Cliente',
+    clients: '+ Novo Cliente',
+    sessions: '+ Nova Sessão',
+    progress: '',
+    periodization: '+ Novo Macrociclo',
+    'client-detail': '+ Sessão',
+    'client-portal': '+ Feedback'
+  };
+  const btn = document.getElementById('topbar-action');
+  btn.textContent = actionMap[view] || '';
+  btn.style.display = actionMap[view] ? '' : 'none';
+  if (view === 'sessions') btn.onclick = () => openSessionForm('');
+  else if (view === 'periodization') btn.onclick = () => openMacroForm(document.getElementById('perio-client-select')?.value || '');
+  else if (view === 'client-portal') btn.onclick = () => openFeedbackForm(document.getElementById('portal-client-select')?.value || '');
+  else btn.onclick = openNewClient;
+
+  if (view === 'clients') renderClients();
+  if (view === 'dashboard') renderDashboard();
+  if (view === 'periodization') renderPeriodization();
+  if (view === 'sessions') renderSessionsView();
+  if (view === 'progress') renderProgressView();
+  if (view === 'client-portal') renderClientPortal();
+
+  // close sidebar on mobile
+  if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ─── RENDER DASHBOARD ─────────────────────────────────────────────────────────
+function renderDashboard() {
+  document.getElementById('stat-total').textContent = clients.length;
+  const weekAgo = Date.now() - 7*24*60*60*1000;
+  const sessionsThisWeek = (typeof sessions !== 'undefined' ? sessions : [])
+    .filter(s => new Date(s.date+'T12:00:00').getTime() >= weekAgo).length;
+  document.getElementById('stat-sessions').textContent = sessionsThisWeek;
+
+  const goals = [...new Set(clients.map(c => c.goal))].slice(0, 3);
+  document.getElementById('stat-goals').textContent = goals.length || '—';
+
+  const container = document.getElementById('dashboard-clients');
+  if (!clients.length) {
+    container.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">◎</div>
+      <div class="empty-title">Sem clientes ainda</div>
+      <p style="margin-bottom:20px;font-size:14px">Adiciona o teu primeiro cliente para começar.</p>
+      <button class="btn btn-primary" onclick="openNewClient()">+ Adicionar Cliente</button>
+    </div>`;
+    return;
+  }
+  container.innerHTML = clients.slice(0, 6).map(c => clientCardHTML(c)).join('');
+}
+
+// ─── RENDER CLIENTS ───────────────────────────────────────────────────────────
+function renderClients() {
+  const container = document.getElementById('clients-grid');
+  if (!clients.length) {
+    container.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">◎</div>
+      <div class="empty-title">Sem clientes</div>
+      <p style="margin-bottom:20px;font-size:14px">Começa por adicionar o teu primeiro cliente.</p>
+      <button class="btn btn-primary" onclick="openNewClient()">+ Adicionar Cliente</button>
+    </div>`;
+    return;
+  }
+  container.innerHTML = clients.map(c => clientCardHTML(c)).join('');
+}
+
+function clientCardHTML(c) {
+  const initials = c.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const goalLabel = guidelines[c.goal]?.label.split('(')[0].trim() || c.goal;
+  const age = c.dob ? Math.floor((Date.now() - new Date(c.dob)) / 31557600000) : null;
+  const limitCount = (c.limitations || []).length;
+
+  return `<div class="client-card" onclick="viewClient('${c.id}')">
+    <div class="client-avatar">${initials}</div>
+    <div class="client-name">${c.name}</div>
+    <div class="client-goal">${goalLabel}</div>
+    <div class="client-meta">
+      ${age ? `<div class="meta-item"><span>${age} anos</span>Idade</div>` : ''}
+      <div class="meta-item"><span>${c.sessionsWeek || '—'}</span>Sess/sem</div>
+      ${c.weight ? `<div class="meta-item"><span>${c.weight} kg</span>Peso</div>` : ''}
+      ${limitCount ? `<div class="meta-item"><span>${limitCount}</span>Limitações</div>` : ''}
+    </div>
+    <div class="client-actions" onclick="event.stopPropagation()">
+      <button class="btn btn-secondary" style="flex:1;font-size:13px" onclick="viewClient('${c.id}')">Ver Perfil</button>
+      <button class="btn btn-secondary" style="font-size:13px" onclick="editClient('${c.id}')">Editar</button>
+      <button class="btn btn-danger" style="font-size:13px" onclick="deleteClient('${c.id}')">✕</button>
+    </div>
+  </div>`;
+}
+
+// ─── VIEW CLIENT DETAIL ───────────────────────────────────────────────────────
+function renderAFPortalCard(client) {
+  var af = client.activeforce;
+  if (!af || !Object.values(af).some(function(v){ return v !== null && v !== undefined && v !== ''; })) return '';
+  var html = '<div class="portal-section"><div class="portal-section-title">💪 ActiveForce 2 — Dados Funcionais</div>';
+  if (af.quadRatio && parseFloat(af.quadRatio) < 90)
+    html += '<div class="alert alert-warning" style="margin-bottom:8px">⚠️ Desequilíbrio quad D/E (' + af.quadRatio + '%)</div>';
+  if (af.hqRatio && (parseFloat(af.hqRatio) < 50 || parseFloat(af.hqRatio) > 80))
+    html += '<div class="alert alert-warning" style="margin-bottom:8px">⚠️ Ratio H:Q fora do ideal (' + af.hqRatio + '%)</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">';
+  var hqColor = af.hqRatio && (parseFloat(af.hqRatio)<50||parseFloat(af.hqRatio)>80) ? 'var(--danger)' : 'var(--success)';
+  if (af.quadR) html += '<div class="volume-card"><div class="volume-val">' + af.quadR + '</div><div class="volume-label">Quad D (N/kg)</div></div>';
+  if (af.quadL) html += '<div class="volume-card"><div class="volume-val">' + af.quadL + '</div><div class="volume-label">Quad E (N/kg)</div></div>';
+  if (af.hamR) html += '<div class="volume-card"><div class="volume-val">' + af.hamR + '</div><div class="volume-label">Isquio D (N/kg)</div></div>';
+  if (af.hqRatio) html += '<div class="volume-card"><div class="volume-val" style="color:' + hqColor + '">' + af.hqRatio + '%</div><div class="volume-label">Ratio H:Q</div></div>';
+  if (af.kneeFlexR) html += '<div class="volume-card"><div class="volume-val" style="color:var(--accent2)">' + af.kneeFlexR + '°</div><div class="volume-label">Flex. Joelho D</div></div>';
+  if (af.ankleR) html += '<div class="volume-card"><div class="volume-val" style="color:var(--accent2)">' + af.ankleR + '°</div><div class="volume-label">Dorsiflexão D</div></div>';
+  html += '</div>';
+  if (af.date) html += '<div style="font-size:11px;color:var(--muted);margin-top:10px">Avaliado em ' + new Date(af.date+'T12:00:00').toLocaleDateString('pt-PT') + '</div>';
+  html += '</div>';
+  return html;
+}
+
+function renderActiveForceSummary(c) {
+  const af = c.activeforce;
+  if (!af || !Object.values(af).some(v => v !== null && v !== undefined && v !== '')) return '';
+
+  let html = '<div class="section-title" style="margin-top:24px">ActiveForce 2 — Avaliação Funcional</div>';
+
+  // Alerts
+  if (af.quadRatio && parseFloat(af.quadRatio) < 90)
+    html += '<div class="alert alert-warning" style="margin-bottom:8px">⚠️ Desequilíbrio quadricípite D/E (' + af.quadRatio + '%) — risco lesão LCA</div>';
+  if (af.hqRatio && (parseFloat(af.hqRatio) < 50 || parseFloat(af.hqRatio) > 80))
+    html += '<div class="alert alert-warning" style="margin-bottom:8px">⚠️ Ratio H:Q fora do intervalo ideal (' + af.hqRatio + '%) — ideal: 50–70%</div>';
+
+  // Force table
+  const forceRows = [
+    ['Quadricípite D/E', af.quadR, af.quadL, 'N/kg', af.quadRatio ? 'Ratio: ' + af.quadRatio + '%' : ''],
+    ['Isquiotibiais D/E', af.hamR, af.hamL, 'N/kg', af.hqRatio ? 'H:Q: ' + af.hqRatio + '%' : ''],
+    ['Glúteo D/E', af.glutR, af.glutL, 'N/kg', ''],
+    ['Abdutor D/E', af.abdR, af.abdL, 'N/kg', ''],
+    ['Core Flex/Ext', af.coreFlex, af.coreExt, 'N/kg', ''],
+    ['Ombro Flex D/E', af.shoulderFlexR, af.shoulderFlexL, 'N/kg', ''],
+  ].filter(r => r[1] || r[2]);
+
+  const romRows = [
+    ['Flexão Joelho D/E', af.kneeFlexR, af.kneeFlexL, '°'],
+    ['Extensão Anca D/E', af.hipExtR, af.hipExtL, '°'],
+    ['Flexão Ombro D/E', af.shRomR, af.shRomL, '°'],
+    ['Dorsiflexão D/E', af.ankleR, af.ankleL, '°'],
+    ['Rot. Cervical D/E', af.neckR, af.neckL, '°'],
+  ].filter(r => r[1] || r[2]);
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">';
+
+  if (forceRows.length) {
+    html += '<div class="portal-section" style="padding:16px">';
+    html += '<div class="portal-section-title" style="font-size:11px;margin-bottom:10px">Força (N/kg)</div>';
+    forceRows.forEach(function(row) {
+      var label = row[0], r = row[1], l = row[2], unit = row[3], extra = row[4];
+      var ratioSpan = extra ? '<span style="font-size:11px;color:var(--accent);margin-left:6px">' + extra + '</span>' : '';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">';
+      html += '<span style="color:var(--muted)">' + label + '</span>';
+      html += '<span>' + (r ? r + unit : '—') + ' / ' + (l ? l + unit : '—') + ratioSpan + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  if (romRows.length) {
+    html += '<div class="portal-section" style="padding:16px">';
+    html += '<div class="portal-section-title" style="font-size:11px;margin-bottom:10px">Amplitude Articular (°)</div>';
+    romRows.forEach(function(row) {
+      var label = row[0], r = row[1], l = row[2], unit = row[3];
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">';
+      html += '<span style="color:var(--muted)">' + label + '</span>';
+      html += '<span>' + (r ? r + unit : '—') + ' / ' + (l ? l + unit : '—') + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  html += '</div>';
+
+  if (af.notes) html += '<div class="alert alert-info" style="margin-bottom:16px">📝 ' + af.notes + '</div>';
+  if (af.date) {
+    var d = new Date(af.date + 'T12:00:00').toLocaleDateString('pt-PT', {day:'numeric', month:'long', year:'numeric'});
+    ```
+html += '<div style="font-size:12px;color:var(--muted);margin-bottom:16px">Avaliação realizada em: ' + d + '</div>';
+```
+
+}
+
+return html;
+}
+
+function viewClient(id) {
+const c = clients.find(x => x.id === id);
+if (!c) return;
+
+const initials = c.name.split(’ ‘).map(w => w[0]).slice(0, 2).join(’’).toUpperCase();
+const age = c.dob ? Math.floor((Date.now() - new Date(c.dob)) / 31557600000) : null;
+const gl = guidelines[c.goal];
+const limitLabels = {
+lombalgia: ‘Lombalgia’, joelho: ‘Joelho’, ombro: ‘Ombro’,
+hipertensao: ‘Hipertensão’, diabetes: ‘Diabetes’,
+cardio: ‘Condição Cardíaca’, osteoporose: ‘Osteoporose’, gravidez: ‘Gravidez/Pós-Parto’
+};
+
+const hasLimitations = (c.limitations || []).length > 0;
+
+document.getElementById(‘client-detail-content’).innerHTML = `<div class="detail-header"> <div class="detail-avatar">${initials}</div> <div class="detail-info"> <div class="detail-name">${c.name}</div> <div class="detail-tags"> <span class="tag tag-green">${gl?.label.split('(')[0].trim() || c.goal}</span> ${age ?`<span class="tag tag-blue">${age} anos</span>`: ''} <span class="tag tag-blue">${expLabel(c.experience)}</span> <span class="tag tag-blue">${c.sessionsWeek || '?'} sessões/semana</span> ${hasLimitations ?`<span class="tag tag-red">⚠ ${c.limitations.length} limitação(ões)</span>` : ‘’}
+</div>
+<div style="display:flex;gap:10px">
+<button class="btn btn-secondary" style="font-size:13px" onclick="editClient('${c.id}')">Editar Perfil</button>
+<button class="btn btn-primary" style="font-size:13px" onclick="openSessionForm('${c.id}')">+ Nova Sessão</button>
+<button class="btn btn-secondary" style="font-size:13px" onclick="goToMacro('${c.id}')">◈ Macrociclo</button>
+</div>
+</div>
+</div>
+
+```
+${hasLimitations ? `
+<div class="alert alert-warning">
+  ⚠️ <strong>Limitações de saúde:</strong> ${c.limitations.map(l => limitLabels[l] || l).join(', ')}.
+  ${c.limitationsNotes ? ' — ' + c.limitationsNotes : ''}
+  Ajusta os exercícios em conformidade.
+</div>` : ''}
+
+<div class="section-title">Bioimpedância</div>
+<div class="bio-grid">
+  ${c.weight ? `<div class="bio-card"><div class="bio-value">${c.weight}</div><div class="bio-label">Peso (kg)</div></div>` : ''}
+  ${c.height ? `<div class="bio-card"><div class="bio-value">${c.height}</div><div class="bio-label">Altura (cm)</div></div>` : ''}
+  ${c.bmi ? `<div class="bio-card"><div class="bio-value">${c.bmi}</div><div class="bio-label">IMC</div></div>` : ''}
+  ${c.fat ? `<div class="bio-card"><div class="bio-value">${c.fat}%</div><div class="bio-label">Massa Gorda</div></div>` : ''}
+  ${c.muscle ? `<div class="bio-card"><div class="bio-value">${c.muscle}%</div><div class="bio-label">Massa Muscular</div></div>` : ''}
+  ${c.water ? `<div class="bio-card"><div class="bio-value">${c.water}%</div><div class="bio-label">Água Corporal</div></div>` : ''}
+  ${c.bmr ? `<div class="bio-card"><div class="bio-value">${c.bmr}</div><div class="bio-label">Metab. Basal (kcal)</div></div>` : ''}
+  ${c.bone ? `<div class="bio-card"><div class="bio-value">${c.bone}kg</div><div class="bio-label">Massa Óssea</div></div>` : ''}
+</div>
+
+${renderActiveForceSummary(c)}
+
+<div class="section-title">Guidelines do Objetivo</div>
+<div class="guidelines-box">
+  <div class="guidelines-title">⚡ ${gl?.label || c.goal}</div>
+  ${gl?.items.map(([k,v]) => `<div class="guideline-item"><span class="guideline-key">${k}</span><span class="guideline-val">${v}</span></div>`).join('') || ''}
+</div>
+
+<div class="section-title" style="margin-top:24px">Periodização</div>
+<div class="macro-bar">
+  <div class="meso-block">
+    <div class="meso-label">Mesociclo 1</div>
+    <div class="meso-name">Acumulação</div>
+    <div class="meso-weeks">4 semanas</div>
+  </div>
+  <div class="meso-block">
+    <div class="meso-label">Mesociclo 2</div>
+    <div class="meso-name">Intensificação</div>
+    <div class="meso-weeks">4 semanas</div>
+  </div>
+  <div class="meso-block">
+    <div class="meso-label">Mesociclo 3</div>
+    <div class="meso-name">Realização</div>
+    <div class="meso-weeks">3 sem + Deload</div>
+  </div>
+</div>
+
+<div class="section-title">Sessões de Treino</div>
+<div class="empty-state" style="padding:32px">
+  <div style="font-size:32px;margin-bottom:12px">▷</div>
+  <div class="empty-title" style="font-size:16px">Sem sessões registadas</div>
+  <p style="font-size:13px;margin-bottom:16px">Regista a primeira sessão de treino de ${c.name.split(' ')[0]}.</p>
+  <button class="btn btn-primary">+ Nova Sessão</button>
+</div>
+```
+
+`;
+
+navigate(‘client-detail’);
+}
+
+function expLabel(exp) {
+const m = { sedentario: ‘Sedentário’, iniciante: ‘Iniciante’, intermedio: ‘Intermédio’, avancado: ‘Avançado’ };
+return m[exp] || exp || ‘N/D’;
+}
+
+// ─── PERIODIZATION MODULE ─────────────────────────────────────────────────────
+let macros = JSON.parse(localStorage.getItem(‘ptcoach_macros’) || ‘[]’);
+
+const PERIO_PHASES = [
+{ key: ‘accumulation’, label: ‘Acumulação’, color: ‘#c0392b’,
+desc: ‘Volume elevado, intensidade moderada. Construção de base de trabalho e hipertrofia.’ },
+{ key: ‘intensification’, label: ‘Intensificação’, color: ‘#c0392b’,
+desc: ‘Volume moderado, intensidade elevada. Desenvolvimento de força e potência.’ },
+{ key: ‘realization’, label: ‘Realização / Pico’, color: ‘#e8784a’,
+desc: ‘Volume baixo, intensidade máxima. Expressão máxima das adaptações. Inclui deload.’ },
+];
+
+const PERIO_TYPE_DESCS = {
+linear: ‘📈 <strong style="color:var(--text)">Periodização Linear</strong> — Recomendada para iniciantes e intermédios. Volume decresce e intensidade aumenta progressivamente de mesociclo para mesociclo. Simples e eficaz para progressão contínua.’,
+undulating: ‘〰️ <strong style="color:var(--text)">Periodização Ondulante (DUP)</strong> — Variação de volume e intensidade dentro da mesma semana (ex: Seg = força, Qua = hipertrofia, Sex = potência). Ideal para intermédios e avançados.’,
+block: ‘⬛ <strong style="color:var(--text)">Periodização por Blocos</strong> — Cada mesociclo tem um foco exclusivo: Bloco 1 = Acumulação (volume), Bloco 2 = Transmutação (intensidade), Bloco 3 = Realização (pico). Ideal para atletas e avançados.’,
+};
+
+function selectPerioType(el) {
+document.querySelectorAll(’.perio-type-option’).forEach(o => o.classList.remove(‘selected’));
+el.classList.add(‘selected’);
+document.getElementById(‘perio-type-desc’).innerHTML = PERIO_TYPE_DESCS[el.dataset.type] || ‘’;
+buildMesoConfigRows();
+}
+
+function buildMesoConfigRows() {
+const type = document.querySelector(’.perio-type-option.selected’)?.dataset.type || ‘linear’;
+const container = document.getElementById(‘meso-config-rows’);
+const goalsContainer = document.getElementById(‘meso-goals-rows’);
+
+const phases = type === ‘undulating’
+? [{key:‘meso1’,label:‘Mesociclo 1’},{key:‘meso2’,label:‘Mesociclo 2’},{key:‘meso3’,label:‘Mesociclo 3’}]
+: PERIO_PHASES;
+
+container.innerHTML = phases.map((p, i) => `<div style="display:grid;grid-template-columns:180px 80px 80px 1fr;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"> <div style="font-size:13px;font-weight:600;color:${p.color||'var(--accent)'}"> ${p.label} <div style="font-size:11px;color:var(--muted);font-weight:400;margin-top:2px">${p.desc||''}</div> </div> <div class="field"> <label>Semanas</label> <input type="number" id="mf-weeks-${i}" min="1" max="16" placeholder="4" value="${i===2?3:4}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%;text-align:center"> </div> <div class="field"> <label>Deload?</label> <select id="mf-deload-${i}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%"> <option value="0">Não</option> <option value="1" ${i===2?'selected':''}>Sim (+1 sem)</option> </select> </div> <div class="field"> <label>Foco / Notas</label> <input type="text" id="mf-focus-${i}" placeholder="Ex: hipertrofia base, força máxima..." style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%"> </div> </div>`).join(’’);
+
+goalsContainer.innerHTML = phases.map((p, i) => `<div style="padding:10px 0;border-bottom:1px solid var(--border)"> <div style="font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:1px">${p.label}</div> <div style="display:flex;flex-wrap:wrap;gap:6px"> ${['Aumentar volume','Aumentar intensidade','Melhorar técnica','Construir força','Deload/Recuperação','Manutenção'].map(g =>`
+<label class="checkbox-item" onclick="toggleCheckbox(this)" style="font-size:12px">
+<input type="checkbox" value="${g}" data-meso="${i}"> ${g}
+</label>`).join('')} </div> </div> `).join(’’);
+}
+
+function updateSessionLabels() {
+const n = parseInt(document.getElementById(‘mf-sessions-per-week’).value) || 0;
+const container = document.getElementById(‘session-labels-row’);
+const existing = […container.querySelectorAll(‘input’)].map(i => i.value);
+container.innerHTML = ‘’;
+for (let i = 0; i < n; i++) {
+const inp = document.createElement(‘input’);
+inp.type = ‘text’;
+inp.placeholder = ’Sessão ’ + (i+1);
+inp.value = existing[i] || ‘’;
+inp.style.cssText = ‘background:var(–surface2);border:1px solid var(–border);border-radius:6px;padding:7px 10px;color:var(–text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:110px’;
+container.appendChild(inp);
+}
+}
+
+function openMacroForm(clientId) {
+const sel = document.getElementById(‘perio-client-select’);
+if (clientId) sel.value = clientId;
+document.getElementById(‘mf-name’).value = ‘’;
+document.getElementById(‘mf-start’).value = new Date().toISOString().slice(0,10);
+document.getElementById(‘session-labels-row’).innerHTML = ‘’;
+
+// Auto-suggest periodization type based on client profile
+const cid = clientId || sel.value;
+const client = clients.find(c => c.id === cid);
+let suggestedType = ‘linear’;
+let suggestedSessions = ‘’;
+let suggestion = ‘’;
+
+if (client) {
+suggestedSessions = client.sessionsWeek || ‘’;
+if (client.experience === ‘avancado’) {
+suggestedType = ‘block’;
+suggestion = ‘⚡ Periodização por Blocos recomendada para nível avançado.’;
+} else if (client.experience === ‘intermedio’) {
+suggestedType = ‘undulating’;
+suggestion = ‘⚡ Periodização Ondulante (DUP) recomendada para nível intermédio.’;
+} else {
+suggestedType = ‘linear’;
+suggestion = ‘⚡ Periodização Linear recomendada para iniciantes/sedentários — progressão simples e eficaz.’;
+}
+// goal adjustments
+if (client.goal === ‘forca’) { suggestedType = ‘block’; suggestion = ‘⚡ Periodização por Blocos recomendada para objetivo de Força Máxima.’; }
+if (client.goal === ‘saude’ || client.goal === ‘perda_gordura’) { suggestedType = ‘linear’; suggestion = ‘⚡ Periodização Linear recomendada para objetivo de Saúde/Perda de Gordura.’; }
+
+```
+document.getElementById('mf-name').value = `Macrociclo ${client.name.split(' ')[0]} — ${new Date().getFullYear()}`;
+```
+
+}
+
+document.getElementById(‘mf-sessions-per-week’).value = suggestedSessions;
+if (suggestedSessions) updateSessionLabels();
+
+// Set suggested type
+document.querySelectorAll(’.perio-type-option’).forEach(o => {
+o.classList.toggle(‘selected’, o.dataset.type === suggestedType);
+});
+document.getElementById(‘perio-type-desc’).innerHTML = PERIO_TYPE_DESCS[suggestedType] +
+(suggestion ? `<div style="margin-top:8px;padding:8px 10px;background:rgba(192,57,43,0.06);border-radius:6px;color:var(--accent);font-size:12px">${suggestion}</div>` : ‘’);
+
+buildMesoConfigRows();
+document.getElementById(‘macro-form-overlay’).classList.add(‘open’);
+}
+
+function closeMacroForm() {
+document.getElementById(‘macro-form-overlay’).classList.remove(‘open’);
+}
+
+function saveMacro() {
+const clientId = document.getElementById(‘perio-client-select’).value;
+if (!clientId) { alert(‘Seleciona um cliente primeiro.’); closeMacroForm(); return; }
+const name = document.getElementById(‘mf-name’).value.trim() || ‘Macrociclo’;
+const start = document.getElementById(‘mf-start’).value;
+const perioType = document.querySelector(’.perio-type-option.selected’)?.dataset.type || ‘linear’;
+const sessionsPerWeek = parseInt(document.getElementById(‘mf-sessions-per-week’).value) || null;
+const sessionLabels = […document.querySelectorAll(’#session-labels-row input’)].map(i => i.value || ‘’);
+
+const phases = perioType === ‘undulating’
+? [{key:‘meso1’,label:‘Mesociclo 1’},{key:‘meso2’,label:‘Mesociclo 2’},{key:‘meso3’,label:‘Mesociclo 3’}]
+: PERIO_PHASES;
+
+const mesos = phases.map((p, i) => {
+const weeks = parseInt(document.getElementById(‘mf-weeks-’ + i)?.value) || 4;
+const deload = parseInt(document.getElementById(‘mf-deload-’ + i)?.value) || 0;
+const focus = document.getElementById(‘mf-focus-’ + i)?.value.trim() || ‘’;
+const goals = […document.querySelectorAll(`[data-meso="${i}"].selected`)]
+.map(el => el.querySelector(‘input’)?.value).filter(Boolean);
+return { key: p.key || ‘meso’+i, label: p.label, weeks, deload, focus, goals, color: p.color || ‘’ };
+});
+
+const macro = {
+id: Date.now().toString(),
+clientId,
+name,
+start,
+perioType,
+sessionsPerWeek,
+sessionLabels,
+mesos,
+createdAt: Date.now(),
+};
+
+macros.push(macro);
+localStorage.setItem(‘ptcoach_macros’, JSON.stringify(macros));
+closeMacroForm();
+renderPeriodization();
+}
+
+function deleteMacro(id) {
+if (!confirm(‘Eliminar este macrociclo?’)) return;
+macros = macros.filter(m => m.id !== id);
+localStorage.setItem(‘ptcoach_macros’, JSON.stringify(macros));
+renderPeriodization();
+}
+
+// ─── RENDER PERIODIZATION ─────────────────────────────────────────────────────
+function renderPeriodization() {
+const sel = document.getElementById(‘perio-client-select’);
+const curVal = sel.value;
+sel.innerHTML = ‘<option value="">Seleciona um cliente…</option>’ +
+clients.map(c => `<option value="${c.id}" ${c.id===curVal?'selected':''}>${c.name}</option>`).join(’’);
+
+const clientId = sel.value;
+const newMacroBtn = document.getElementById(‘btn-new-macro’);
+const container = document.getElementById(‘perio-content’);
+
+if (!clientId) {
+newMacroBtn.style.display = ‘none’;
+container.innerHTML = `<div class="empty-state"> <div class="empty-icon">◈</div> <div class="empty-title">Seleciona um cliente</div> <p style="font-size:14px">Seleciona um cliente para visualizar ou criar o seu macrociclo.</p> </div>`;
+return;
+}
+
+newMacroBtn.style.display = ‘’;
+const client = clients.find(c => c.id === clientId);
+const clientMacros = macros.filter(m => m.clientId === clientId);
+
+if (!clientMacros.length) {
+container.innerHTML = `<div class="empty-state"> <div class="empty-icon">◈</div> <div class="empty-title">Sem macrociclo criado</div> <p style="font-size:14px;margin-bottom:16px">${client?.name || 'Este cliente'} ainda não tem um macrociclo configurado.</p> <button class="btn btn-primary" onclick="openMacroForm('${clientId}')">+ Criar Macrociclo</button> </div>`;
+return;
+}
+
+container.innerHTML = clientMacros.map(macro => renderMacroCard(macro, client)).join(’’);
+}
+
+function renderMacroCard(macro, client) {
+const totalWeeks = macro.mesos.reduce((acc, m) => acc + m.weeks + (m.deload ? 1 : 0), 0);
+const startDate = new Date(macro.start + ‘T12:00:00’);
+const endDate = new Date(startDate.getTime() + totalWeeks * 7 * 24 * 60 * 60 * 1000);
+const perioLabel = { linear: ‘Linear’, undulating: ‘Ondulante (DUP)’, block: ‘Por Blocos’ }[macro.perioType] || macro.perioType;
+
+// Count sessions logged for this macro (by meso/week if tagged)
+const clientSessions = sessions.filter(s => s.clientId === macro.clientId);
+
+// Build week grid
+const mesoColumns = macro.mesos.map((meso, mi) => {
+const totalMesoWeeks = meso.weeks + (meso.deload ? 1 : 0);
+const weeks = [];
+for (let w = 1; w <= totalMesoWeeks; w++) {
+const isDeload = meso.deload && w === totalMesoWeeks;
+// find sessions logged for this meso/week
+const logged = clientSessions.filter(s => s.meso === mi+1 && s.week === w);
+const sessionDots = [];
+const n = macro.sessionsPerWeek || 3;
+for (let s = 0; s < n; s++) {
+const sess = logged[s];
+sessionDots.push(`<div class="session-dot ${sess ? 'filled' : 'add-dot'}"  title="${sess ? (sess.name || 'Sessão ' + (s+1)) : 'Adicionar sessão'}" onclick="quickAddSession('${macro.clientId}', ${mi+1}, ${w}, ${s+1}, '${macro.id}')"> ${sess ? '✓' : (s+1)} </div>`);
+}
+weeks.push(`<div class="micro-week ${logged.length ? 'has-sessions' : ''} ${isDeload ? 'deload' : ''}"> <div class="micro-week-header"> <span class="week-num">Sem ${w}</span> ${isDeload ? '<span class="week-badge week-badge-deload">Deload</span>' : (logged.length ? '<span class="week-badge week-badge-active">'+logged.length+' sess.</span>' : '')} </div> ${meso.focus && w===1 ? `<div style="font-size:11px;color:var(--muted);margin-bottom:4px">${meso.focus}</div>` : ''} <div class="week-sessions-row">${sessionDots.join('')}</div> <button onclick="toggleWeekDetail('${macro.id}',${mi},${w},this)" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:2px 0;margin-top:4px;width:100%;text-align:left;transition:color 0.2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">▸ Semana</button> </div>`);
+}
+return { meso, weeks };
+});
+
+return `<div style="margin-bottom:32px"> <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap"> <div> <h3 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px">${macro.name}</h3> <div style="display:flex;gap:8px;flex-wrap:wrap"> <span class="tag tag-blue">${perioLabel}</span> <span class="tag tag-green">${totalWeeks} semanas</span> <span class="tag tag-blue">${startDate.toLocaleDateString('pt-PT',{day:'numeric',month:'short',year:'numeric'})} → ${endDate.toLocaleDateString('pt-PT',{day:'numeric',month:'short',year:'numeric'})}</span> ${macro.sessionsPerWeek ? `<span class="tag tag-green">${macro.sessionsPerWeek} sess/sem</span>` : ‘’}
+</div>
+</div>
+<button class="btn btn-danger" style="font-size:13px" onclick="deleteMacro('${macro.id}')">Eliminar</button>
+</div>
+
+```
+<div class="macro-summary-grid">
+  <div class="macro-summary-card"><div class="macro-summary-val">${macro.mesos.length}</div><div class="macro-summary-label">Mesociclos</div></div>
+  <div class="macro-summary-card"><div class="macro-summary-val">${totalWeeks}</div><div class="macro-summary-label">Semanas Total</div></div>
+  <div class="macro-summary-card"><div class="macro-summary-val">${macro.sessionsPerWeek || '?'}</div><div class="macro-summary-label">Sess / Semana</div></div>
+  <div class="macro-summary-card"><div class="macro-summary-val">${clientSessions.length}</div><div class="macro-summary-label">Sessões Registadas</div></div>
+</div>
+
+<div class="macro-timeline">
+  ${mesoColumns.map(({meso, weeks}, mi) => `
+    <div class="meso-col">
+      <div class="meso-col-header">
+        <div class="meso-phase-tag">${PERIO_PHASES[mi]?.label || meso.label}</div>
+        <div class="meso-col-title">${meso.label}</div>
+        <div class="meso-col-meta">${meso.weeks} sem${meso.deload ? ' + deload' : ''} · ${meso.focus || ''}</div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          ${mi===0 ? "<span style=\"font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(192,57,43,0.1);color:var(--accent2)\">Vol. Alto</span><span style=\"font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(192,57,43,0.05);color:var(--muted)\">Int. Mod.</span>" : ""}
+          ${mi===1 ? "<span style=\"font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(192,57,43,0.05);color:var(--muted)\">Vol. Mod.</span><span style=\"font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(192,57,43,0.1);color:var(--accent)\">Int. Alta</span>" : ""}
+          ${mi===2 ? "<span style=\"font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(232,120,74,0.05);color:var(--muted)\">Vol. Baixo</span><span style=\"font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(232,120,74,0.1);color:var(--accent3)\">Int. Máx.</span>" : ""}
+        </div>
+      </div>
+      ${(() => {
+        const totalW = meso.weeks + (meso.deload ? 1 : 0);
+        const done = clientSessions.filter(s => s.meso === mi+1).length;
+        const expected = totalW * (macro.sessionsPerWeek || 3);
+        const pct = expected > 0 ? Math.min(100, Math.round(done/expected*100)) : 0;
+        return pct > 0 ? `<div style="margin:0 12px 8px;background:var(--surface2);border-radius:4px;height:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${mi===0?'#c0392b':mi===1?'#c0392b':'#e8784a'};border-radius:4px;transition:width 0.5s"></div>
+        </div><div style="text-align:right;font-size:10px;color:var(--muted);margin:-4px 12px 8px">${done}/${expected} sess. (${pct}%)</div>` : '';
+      })()}
+      <div class="meso-weeks-list">${weeks.join('')}</div>
+    </div>
+  `).join('')}
+</div>
+
+${macro.mesos.some(m => m.goals?.length) ? `
+<div class="guidelines-box" style="margin-top:0">
+  <div class="guidelines-title">🎯 Objetivos por Mesociclo</div>
+  ${macro.mesos.map((m,i) => m.goals?.length ? `
+    <div class="guideline-item">
+      <span class="guideline-key">${m.label}</span>
+      <span class="guideline-val">${m.goals.join(' · ')}</span>
+    </div>` : '').join('')}
+</div>` : ''}
+```
+
+  </div>`;
+}
+
+function quickAddSession(clientId, meso, week, sessNum, macroId) {
+// Check if session already exists — if so, navigate to sessions view filtered
+const existing = sessions.find(s => s.clientId === clientId && s.meso === meso && s.week === week);
+if (existing) {
+navigate(‘sessions’);
+setTimeout(() => {
+const sel = document.getElementById(‘session-client-filter’);
+if (sel) { sel.value = clientId; renderSessionsView(); }
+}, 100);
+return;
+}
+// Pre-fill session form with meso/week
+openSessionForm(clientId);
+setTimeout(() => {
+document.getElementById(‘sf-meso’).value = meso;
+document.getElementById(‘sf-week’).value = week;
+const macro = macros.find(m => m.id === macroId);
+if (macro?.sessionLabels?.[sessNum-1]) {
+document.getElementById(‘sf-name’).value = macro.sessionLabels[sessNum-1];
+}
+}, 100);
+}
+
+// ─── MICRO WEEK DETAIL PANEL ─────────────────────────────────────────────────
+function toggleWeekDetail(macroId, mesoIdx, weekNum, btnEl) {
+const detailId = ‘week-detail-’ + macroId + ‘-’ + mesoIdx + ‘-’ + weekNum;
+let el = document.getElementById(detailId);
+if (el) { el.remove(); btnEl.textContent = ‘▸ Semana’; return; }
+
+const macro = macros.find(m => m.id === macroId);
+if (!macro) return;
+const meso = macro.mesos[mesoIdx];
+const clientSess = sessions.filter(s =>
+s.clientId === macro.clientId && s.meso === mesoIdx+1 && s.week === weekNum
+).sort((a,b) => new Date(a.date)-new Date(b.date));
+
+const gl = guidelines[clients.find(c=>c.id===macro.clientId)?.goal] || {};
+const glItems = gl.items || [];
+
+const n = macro.sessionsPerWeek || 3;
+const labels = macro.sessionLabels || [];
+
+let html = ‘<div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">’;
+
+for (let i = 0; i < n; i++) {
+const sess = clientSess[i];
+const label = labels[i] || (’Sessão ’ + (i+1));
+if (sess) {
+const muscles = […new Set(sess.exercises.map(e=>e.muscle).filter(Boolean))];
+const totalSets = sess.exercises.reduce((a,e)=>a+(e.sets||[]).length,0);
+html += `<div style="background:var(--surface2);border:1px solid rgba(192,57,43,0.25);border-radius:8px;padding:10px 14px"> <div style="display:flex;justify-content:space-between;align-items:center"> <span style="font-size:13px;font-weight:600;color:var(--accent)">✓ ${sess.name || label}</span> <span style="font-size:11px;color:var(--muted)">${new Date(sess.date+'T12:00:00').toLocaleDateString('pt-PT',{day:'numeric',month:'short'})}</span> </div> <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap"> ${muscles.map(m=>{const mg=MUSCLE_GROUPS.find(g=>g.value===m);return `<span class="muscle-tag">${mg?.label||m}</span>`;}).join('')} <span style="font-size:11px;color:var(--muted);margin-left:auto">${totalSets} séries</span> </div> </div>`;
+} else {
+html += `<div style="background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center"> <span style="font-size:13px;color:var(--muted)">${label}</span> <button class="btn btn-secondary" style="font-size:12px;padding:4px 10px" onclick="quickAddSession('${macro.clientId}',${mesoIdx+1},${weekNum},${i+1},'${macroId}')">+ Registar</button> </div>`;
+}
+}
+
+// Show week guidelines if available
+if (glItems.length) {
+html += `<div style="background:rgba(192,57,43,0.04);border:1px solid rgba(192,57,43,0.12);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted)"> <span style="color:var(--accent);font-weight:600">📋 ${meso.label} — ${meso.focus || 'Foco desta fase'}</span><br> ${glItems.slice(0,3).map(([k,v])=>`<span style="margin-right:12px"><strong style="color:var(--text)">${k}:</strong> ${v}</span>`).join(' · ')} </div>`;
+}
+
+html += ‘</div>’;
+
+el = document.createElement(‘div’);
+el.id = detailId;
+el.innerHTML = html;
+btnEl.closest(’.micro-week’).appendChild(el);
+btnEl.textContent = ‘▾ Semana’;
+}
+
+// ─── FORM ─────────────────────────────────────────────────────────────────────
+function openNewClient() {
+editingId = null;
+document.getElementById(‘form-title’).textContent = ‘Novo Cliente’;
+resetForm();
+document.getElementById(‘form-overlay’).classList.add(‘open’);
+}
+
+function editClient(id) {
+const c = clients.find(x => x.id === id);
+if (!c) return;
+editingId = id;
+document.getElementById(‘form-title’).textContent = ‘Editar Cliente’;
+fillForm(c);
+document.getElementById(‘form-overlay’).classList.add(‘open’);
+}
+
+function closeForm() {
+document.getElementById(‘form-overlay’).classList.remove(‘open’);
+editingId = null;
+}
+
+function resetForm() {
+[‘f-name’,‘f-dob’,‘f-weight’,‘f-height’,‘f-bmi’,‘f-fat’,‘f-muscle’,‘f-water’,‘f-bmr’,‘f-bone’,‘f-sessions-week’,‘f-limitations-notes’].forEach(id => {
+const el = document.getElementById(id);
+if (el) el.value = ‘’;
+});
+document.getElementById(‘f-gender’).value = ‘’;
+document.getElementById(‘f-experience’).value = ‘sedentario’;
+document.getElementById(‘f-goal’).value = ‘hipertrofia’;
+document.querySelectorAll(’.checkbox-item’).forEach(el => el.classList.remove(‘selected’));
+// Reset ActiveForce fields
+[‘af-quad-r’,‘af-quad-l’,‘af-quad-ratio’,‘af-ham-r’,‘af-ham-l’,‘af-hq-ratio’,
+‘af-glut-r’,‘af-glut-l’,‘af-abd-r’,‘af-abd-l’,‘af-core-flex’,‘af-core-ext’,
+‘af-shoulder-flex-r’,‘af-shoulder-flex-l’,‘af-shoulder-ext-r’,
+‘af-knee-flex-r’,‘af-knee-flex-l’,‘af-hip-ext-r’,‘af-hip-ext-l’,
+‘af-sh-rom-r’,‘af-sh-rom-l’,‘af-ankle-r’,‘af-ankle-l’,
+‘af-neck-r’,‘af-neck-l’,‘af-date’,‘af-notes’].forEach(id => {
+const el = document.getElementById(id);
+if (el) { el.value = ‘’; el.style.color = ‘’; }
+});
+document.getElementById(‘equipment-group-custom’).innerHTML = ‘’;
+document.getElementById(‘f-equipment-custom-input’).value = ‘’;
+updateGuidelinesPreview();
+}
+
+function fillForm(c) {
+document.getElementById(‘f-name’).value = c.name || ‘’;
+document.getElementById(‘f-dob’).value = c.dob || ‘’;
+document.getElementById(‘f-gender’).value = c.gender || ‘’;
+document.getElementById(‘f-sessions-week’).value = c.sessionsWeek || ‘’;
+document.getElementById(‘f-experience’).value = c.experience || ‘sedentario’;
+document.getElementById(‘f-weight’).value = c.weight || ‘’;
+document.getElementById(‘f-height’).value = c.height || ‘’;
+document.getElementById(‘f-bmi’).value = c.bmi || ‘’;
+document.getElementById(‘f-fat’).value = c.fat || ‘’;
+document.getElementById(‘f-muscle’).value = c.muscle || ‘’;
+document.getElementById(‘f-water’).value = c.water || ‘’;
+document.getElementById(‘f-bmr’).value = c.bmr || ‘’;
+document.getElementById(‘f-bone’).value = c.bone || ‘’;
+document.getElementById(‘f-goal’).value = c.goal || ‘hipertrofia’;
+document.getElementById(‘f-limitations-notes’).value = c.limitationsNotes || ‘’;
+
+document.querySelectorAll(’#limitations-group .checkbox-item’).forEach(el => {
+const val = el.querySelector(‘input’).value;
+el.classList.toggle(‘selected’, (c.limitations || []).includes(val));
+});
+
+// all standard equipment groups
+[‘equipment-group’,‘equipment-group-machines’,‘equipment-group-other’].forEach(gid => {
+document.querySelectorAll(’#’ + gid + ’ .checkbox-item’).forEach(el => {
+const val = el.querySelector(‘input’).value;
+el.classList.toggle(‘selected’, (c.equipment || []).includes(val));
+});
+});
+
+// restore custom equipment items
+const customGroup = document.getElementById(‘equipment-group-custom’);
+customGroup.innerHTML = ‘’;
+(c.equipment || []).filter(v => v.startsWith(‘custom_’)).forEach(val => {
+const displayLabel = val.replace(‘custom_’,’’).replace(/_/g,’ ’);
+const el = document.createElement(‘label’);
+el.className = ‘checkbox-item selected’;
+el.dataset.val = val;
+el.innerHTML = ‘<input type="checkbox" value="' + val + '" style="display:none"> ’ + displayLabel + ’ <span onclick="removeCustomEquipment(this)" style="margin-left:4px;opacity:0.5;cursor:pointer;font-size:11px">✕</span>’;
+el.onclick = function(e) { if (e.target.tagName !== ‘SPAN’) this.classList.toggle(‘selected’); };
+customGroup.appendChild(el);
+});
+
+// Fill ActiveForce fields if present
+const af = c.activeforce || {};
+const afFields = {
+‘af-quad-r’: af.quadR, ‘af-quad-l’: af.quadL, ‘af-quad-ratio’: af.quadRatio,
+‘af-ham-r’: af.hamR, ‘af-ham-l’: af.hamL, ‘af-hq-ratio’: af.hqRatio,
+‘af-glut-r’: af.glutR, ‘af-glut-l’: af.glutL,
+‘af-abd-r’: af.abdR, ‘af-abd-l’: af.abdL,
+‘af-core-flex’: af.coreFlex, ‘af-core-ext’: af.coreExt,
+‘af-shoulder-flex-r’: af.shoulderFlexR, ‘af-shoulder-flex-l’: af.shoulderFlexL,
+‘af-shoulder-ext-r’: af.shoulderExtR,
+‘af-knee-flex-r’: af.kneeFlexR, ‘af-knee-flex-l’: af.kneeFlexL,
+‘af-hip-ext-r’: af.hipExtR, ‘af-hip-ext-l’: af.hipExtL,
+‘af-sh-rom-r’: af.shRomR, ‘af-sh-rom-l’: af.shRomL,
+‘af-ankle-r’: af.ankleR, ‘af-ankle-l’: af.ankleL,
+‘af-neck-r’: af.neckR, ‘af-neck-l’: af.neckL,
+‘af-date’: af.date, ‘af-notes’: af.notes,
+};
+Object.entries(afFields).forEach(([id, val]) => {
+const el = document.getElementById(id);
+if (el && val !== null && val !== undefined) el.value = val;
+});
+
+updateGuidelinesPreview();
+}
+
+function toggleCheckbox(el) {
+el.classList.toggle(‘selected’);
+}
+
+function addCustomEquipment() {
+const input = document.getElementById(‘f-equipment-custom-input’);
+const rawVal = input.value.trim();
+if (!rawVal) return;
+const id = ‘custom_’ + rawVal.toLowerCase().replace(/\s+/g,’_’);
+const group = document.getElementById(‘equipment-group-custom’);
+if (group.querySelector(’[data-val=”’ + id + ‘”]’)) { input.value = ‘’; return; }
+const el = document.createElement(‘label’);
+el.className = ‘checkbox-item selected’;
+el.dataset.val = id;
+el.innerHTML = ‘<input type="checkbox" value="' + id + '" style="display:none"> ’ + rawVal + ’ <span onclick="removeCustomEquipment(this)" style="margin-left:4px;opacity:0.5;cursor:pointer;font-size:11px">✕</span>’;
+el.onclick = function(e) { if (e.target.tagName !== ‘SPAN’) this.classList.toggle(‘selected’); };
+group.appendChild(el);
+input.value = ‘’;
+input.focus();
+}
+
+function removeCustomEquipment(span) {
+span.closest(’.checkbox-item’).remove();
+}
+
+function updateGuidelinesPreview() {
+const goal = document.getElementById(‘f-goal’).value;
+const gl = guidelines[goal];
+if (!gl) return;
+document.getElementById(‘guidelines-preview’).innerHTML = `<div class="guidelines-title">⚡ Guidelines Científicas — ${gl.label}</div> ${gl.items.map(([k,v]) =>`<div class="guideline-item"><span class="guideline-key">${k}</span><span class="guideline-val">${v}</span></div>`).join('')} `;
+}
+
+// Auto-calc BMI
+[‘f-weight’,‘f-height’].forEach(id => {
+document.getElementById(id).addEventListener(‘input’, () => {
+const w = parseFloat(document.getElementById(‘f-weight’).value);
+const h = parseFloat(document.getElementById(‘f-height’).value) / 100;
+if (w && h) document.getElementById(‘f-bmi’).value = (w / (h * h)).toFixed(1);
+});
+});
+
+// Auto-calc ActiveForce ratios
+[‘af-quad-r’,‘af-quad-l’].forEach(id => {
+document.getElementById(id).addEventListener(‘input’, () => {
+const r = parseFloat(document.getElementById(‘af-quad-r’).value);
+const l = parseFloat(document.getElementById(‘af-quad-l’).value);
+if (r && l) {
+const ratio = (Math.min(r,l)/Math.max(r,l)*100).toFixed(1);
+document.getElementById(‘af-quad-ratio’).value = ratio;
+document.getElementById(‘af-quad-ratio’).style.color = parseFloat(ratio) < 90 ? ‘var(–danger)’ : ‘var(–success)’;
+}
+});
+});
+[‘af-ham-r’,‘af-quad-r’].forEach(id => {
+document.getElementById(id).addEventListener(‘input’, () => {
+const h = parseFloat(document.getElementById(‘af-ham-r’).value);
+const q = parseFloat(document.getElementById(‘af-quad-r’).value);
+if (h && q) {
+const ratio = (h/q*100).toFixed(1);
+document.getElementById(‘af-hq-ratio’).value = ratio;
+// H:Q ratio should be 50-70% for healthy knee
+document.getElementById(‘af-hq-ratio’).style.color = (parseFloat(ratio) < 50 || parseFloat(ratio) > 80) ? ‘var(–danger)’ : ‘var(–success)’;
+}
+});
+});
+
+function saveClient() {
+const name = document.getElementById(‘f-name’).value.trim();
+if (!name) { alert(‘O nome do cliente é obrigatório.’); return; }
+
+const limitations = […document.querySelectorAll(’#limitations-group .checkbox-item.selected’)]
+.map(el => el.querySelector(‘input’).value);
+// collect from all equipment groups including custom
+const equipment = [
+…document.querySelectorAll(’#equipment-group .checkbox-item.selected, #equipment-group-machines .checkbox-item.selected, #equipment-group-other .checkbox-item.selected, #equipment-group-custom .checkbox-item.selected’)
+].map(el => el.dataset.val || el.querySelector(‘input’).value);
+
+// Collect ActiveForce data
+const activeforce = {
+quadR: parseFloat(document.getElementById(‘af-quad-r’).value)||null,
+quadL: parseFloat(document.getElementById(‘af-quad-l’).value)||null,
+quadRatio: parseFloat(document.getElementById(‘af-quad-ratio’).value)||null,
+hamR: parseFloat(document.getElementById(‘af-ham-r’).value)||null,
+hamL: parseFloat(document.getElementById(‘af-ham-l’).value)||null,
+hqRatio: parseFloat(document.getElementById(‘af-hq-ratio’).value)||null,
+glutR: parseFloat(document.getElementById(‘af-glut-r’).value)||null,
+glutL: parseFloat(document.getElementById(‘af-glut-l’).value)||null,
+abdR: parseFloat(document.getElementById(‘af-abd-r’).value)||null,
+abdL: parseFloat(document.getElementById(‘af-abd-l’).value)||null,
+coreFlex: parseFloat(document.getElementById(‘af-core-flex’).value)||null,
+coreExt: parseFloat(document.getElementById(‘af-core-ext’).value)||null,
+shoulderFlexR: parseFloat(document.getElementById(‘af-shoulder-flex-r’).value)||null,
+shoulderFlexL: parseFloat(document.getElementById(‘af-shoulder-flex-l’).value)||null,
+shoulderExtR: parseFloat(document.getElementById(‘af-shoulder-ext-r’).value)||null,
+kneeFlexR: parseFloat(document.getElementById(‘af-knee-flex-r’).value)||null,
+kneeFlexL: parseFloat(document.getElementById(‘af-knee-flex-l’).value)||null,
+hipExtR: parseFloat(document.getElementById(‘af-hip-ext-r’).value)||null,
+hipExtL: parseFloat(document.getElementById(‘af-hip-ext-l’).value)||null,
+shRomR: parseFloat(document.getElementById(‘af-sh-rom-r’).value)||null,
+shRomL: parseFloat(document.getElementById(‘af-sh-rom-l’).value)||null,
+ankleR: parseFloat(document.getElementById(‘af-ankle-r’).value)||null,
+ankleL: parseFloat(document.getElementById(‘af-ankle-l’).value)||null,
+neckR: parseFloat(document.getElementById(‘af-neck-r’).value)||null,
+neckL: parseFloat(document.getElementById(‘af-neck-l’).value)||null,
+date: document.getElementById(‘af-date’).value||null,
+notes: document.getElementById(‘af-notes’).value.trim()||null,
+};
+
+const client = {
+id: editingId || Date.now().toString(),
+name,
+dob: document.getElementById(‘f-dob’).value,
+gender: document.getElementById(‘f-gender’).value,
+sessionsWeek: parseInt(document.getElementById(‘f-sessions-week’).value) || null,
+experience: document.getElementById(‘f-experience’).value,
+weight: parseFloat(document.getElementById(‘f-weight’).value) || null,
+height: parseFloat(document.getElementById(‘f-height’).value) || null,
+bmi: parseFloat(document.getElementById(‘f-bmi’).value) || null,
+fat: parseFloat(document.getElementById(‘f-fat’).value) || null,
+muscle: parseFloat(document.getElementById(‘f-muscle’).value) || null,
+water: parseFloat(document.getElementById(‘f-water’).value) || null,
+bmr: parseFloat(document.getElementById(‘f-bmr’).value) || null,
+bone: parseFloat(document.getElementById(‘f-bone’).value) || null,
+goal: document.getElementById(‘f-goal’).value,
+limitations,
+limitationsNotes: document.getElementById(‘f-limitations-notes’).value.trim(),
+equipment,
+activeforce,
+createdAt: editingId ? (clients.find(c => c.id === editingId)?.createdAt || Date.now()) : Date.now()
+};
+
+if (editingId) {
+const idx = clients.findIndex(c => c.id === editingId);
+clients[idx] = client;
+} else {
+clients.push(client);
+}
+
+localStorage.setItem(‘ptcoach_clients’, JSON.stringify(clients));
+closeForm();
+renderDashboard();
+if (currentView === ‘clients’) renderClients();
+if (currentView === ‘periodization’) renderPeriodization();
+}
+
+function goToMacro(clientId) {
+navigate(‘periodization’);
+setTimeout(() => {
+const sel = document.getElementById(‘perio-client-select’);
+if (sel) { sel.value = clientId; renderPeriodization(); }
+}, 100);
+}
+
+function deleteClient(id) {
+if (!confirm(‘Tens a certeza que queres eliminar este cliente? Esta ação não pode ser desfeita.’)) return;
+clients = clients.filter(c => c.id !== id);
+localStorage.setItem(‘ptcoach_clients’, JSON.stringify(clients));
+renderDashboard();
+if (currentView === ‘clients’) renderClients();
+if (currentView === ‘client-detail’) navigate(‘clients’);
+}
+
+function openNewSession() { openSessionForm(’’); }
+
+// ─── SESSIONS DATA ────────────────────────────────────────────────────────────
+let sessions = JSON.parse(localStorage.getItem(‘ptcoach_sessions’) || ‘[]’);
+
+const MUSCLE_GROUPS = [
+{ value: ‘peito’, label: ‘Peito’ },
+{ value: ‘costas’, label: ‘Costas’ },
+{ value: ‘ombros’, label: ‘Ombros’ },
+{ value: ‘biceps’, label: ‘Bíceps’ },
+{ value: ‘triceps’, label: ‘Tríceps’ },
+{ value: ‘quadricipite’, label: ‘Quadricípite’ },
+{ value: ‘isquiotibiais’, label: ‘Isquiotibiais’ },
+{ value: ‘gluteos’, label: ‘Glúteos’ },
+{ value: ‘gemeos’, label: ‘Gémeos’ },
+{ value: ‘abdominais’, label: ‘Abdominais’ },
+{ value: ‘antebracos’, label: ‘Antebraços’ },
+{ value: ‘full_body’, label: ‘Full Body’ },
+];
+
+const muscleOptions = MUSCLE_GROUPS.map(m =>
+`<option value="${m.value}">${m.label}</option>`
+).join(’’);
+
+// ─── OPEN SESSION FORM ────────────────────────────────────────────────────────
+function openSessionForm(clientId) {
+// populate client select
+const sel = document.getElementById(‘sf-client’);
+sel.innerHTML = ‘<option value="">Seleciona…</option>’ +
+clients.map(c => `<option value="${c.id}" ${c.id === clientId ? 'selected' : ''}>${c.name}</option>`).join(’’);
+
+// today
+document.getElementById(‘sf-date’).value = new Date().toISOString().slice(0,10);
+document.getElementById(‘sf-name’).value = ‘’;
+document.getElementById(‘sf-notes’).value = ‘’;
+document.getElementById(‘sf-meso’).value = ‘’;
+document.getElementById(‘sf-week’).value = ‘’;
+
+// clear exercises
+document.getElementById(‘exercises-container’).innerHTML = ‘’;
+addExerciseRow();
+
+// show suggestion if client selected
+if (clientId) onSessionClientChange(clientId);
+
+document.getElementById(‘session-form-overlay’).classList.add(‘open’);
+}
+
+function closeSessionForm() {
+document.getElementById(‘session-form-overlay’).classList.remove(‘open’);
+}
+
+// ─── EXERCISE ROWS ────────────────────────────────────────────────────────────
+let exerciseRowCount = 0;
+
+function addExerciseRow(data) {
+exerciseRowCount++;
+const n = exerciseRowCount;
+const container = document.getElementById(‘exercises-container’);
+const div = document.createElement(‘div’);
+div.className = ‘exercise-row’;
+div.id = ‘exrow-’ + n;
+
+div.innerHTML = `<div class="exercise-row-header"> <span class="exercise-row-num">#${n}</span> <div class="field" style="flex:2;min-width:160px"> <input type="text" id="ex-name-${n}" placeholder="Nome do exercício" value="${data?.name||''}" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%" oninput="updateSuggestion(${n})"> </div> <div class="field" style="min-width:140px"> <select id="ex-muscle-${n}" onchange="updateSuggestion(${n})" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%"> <option value="">Grupo muscular</option> ${muscleOptions} </select> </div> <button onclick="removeExerciseRow(${n})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:6px;transition:color 0.2s;flex-shrink:0" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">✕</button> </div> <div id="ex-suggestion-${n}"></div> <div class="set-header"> <div class="set-col-label">Série</div> <div class="set-col-label">Reps</div> <div class="set-col-label">Carga (kg)</div> <div class="set-col-label">RIR</div> <div class="set-col-label">RPE</div> <div></div> </div> <div class="exercise-sets" id="sets-${n}"></div> <button class="btn btn-secondary" type="button" onclick="addSetRow(${n})" style="font-size:12px;padding:5px 12px;margin-top:8px">+ Série</button>`;
+
+container.appendChild(div);
+
+// pre-set muscle
+if (data?.muscle) document.getElementById(‘ex-muscle-’ + n).value = data.muscle;
+
+// add sets
+const setsData = data?.sets || [{}];
+setsData.forEach(s => addSetRow(n, s));
+
+if (data?.muscle) updateSuggestion(n);
+return n;
+}
+
+function removeExerciseRow(n) {
+const el = document.getElementById(‘exrow-’ + n);
+if (el) el.remove();
+}
+
+function addSetRow(exN, data) {
+const container = document.getElementById(‘sets-’ + exN);
+const setN = container.children.length + 1;
+const row = document.createElement(‘div’);
+row.className = ‘set-row’;
+row.innerHTML = `<div class="set-label">S${setN}</div> <input type="number" placeholder="12" min="1" max="100" value="${data?.reps||''}" class="set-reps"> <input type="number" placeholder="0" min="0" max="500" step="0.5" value="${data?.load||''}" class="set-load" oninput="highlightLoad(this)"> <input type="number" placeholder="2" min="0" max="10" step="0.5" value="${data?.rir||''}" class="set-rir"> <input type="number" placeholder="8" min="1" max="10" step="0.5" value="${data?.rpe||''}" class="set-rpe"> <button class="del-set-btn" onclick="this.closest('.set-row').remove(); renumberSets(${exN})">✕</button>`;
+container.appendChild(row);
+}
+
+function renumberSets(exN) {
+document.querySelectorAll(’#sets-’ + exN + ’ .set-label’).forEach((el, i) => {
+el.textContent = ‘S’ + (i + 1);
+});
+}
+
+function highlightLoad(input) {
+if (parseFloat(input.value) > 0) input.style.borderColor = ‘var(–accent)’;
+else input.style.borderColor = ‘var(–border)’;
+}
+
+// ─── LOAD SUGGESTION ──────────────────────────────────────────────────────────
+function updateSuggestion(exN) {
+const clientId = document.getElementById(‘sf-client’).value;
+const muscle = document.getElementById(‘ex-muscle-’ + exN).value;
+const suggBox = document.getElementById(‘ex-suggestion-’ + exN);
+
+if (!clientId || !muscle) { suggBox.innerHTML = ‘’; return; }
+
+// find last session with this muscle for this client
+const clientSessions = sessions
+.filter(s => s.clientId === clientId)
+.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+let bestLoad = null, bestReps = null, bestRIR = null, bestExercise = null, bestDate = null;
+
+for (const sess of clientSessions) {
+for (const ex of (sess.exercises || [])) {
+if (ex.muscle !== muscle) continue;
+const loads = (ex.sets || []).map(s => parseFloat(s.load)).filter(v => !isNaN(v) && v > 0);
+const reps = (ex.sets || []).map(s => parseInt(s.reps)).filter(v => !isNaN(v) && v > 0);
+const rirs = (ex.sets || []).map(s => parseFloat(s.rir)).filter(v => !isNaN(v));
+if (!loads.length) continue;
+bestLoad = Math.max(…loads);
+bestReps = reps.length ? Math.round(reps.reduce((a,b)=>a+b,0)/reps.length) : null;
+bestRIR = rirs.length ? Math.round(rirs.reduce((a,b)=>a+b,0)/rirs.length*10)/10 : null;
+bestExercise = ex.name;
+bestDate = sess.date;
+break;
+}
+if (bestLoad !== null) break;
+}
+
+if (bestLoad === null) {
+suggBox.innerHTML = `<div class="suggestion-badge">⚡ Primeira sessão com este grupo muscular — regista para histórico futuro.</div>`;
+return;
+}
+
+// Progressive overload suggestion: +2.5kg if RIR <= 2, same if RIR 3, -2.5 if RIR > 4
+let suggestedLoad = bestLoad;
+if (bestRIR !== null) {
+if (bestRIR <= 1) suggestedLoad = bestLoad + 5;
+else if (bestRIR <= 2) suggestedLoad = bestLoad + 2.5;
+else if (bestRIR >= 5) suggestedLoad = Math.max(0, bestLoad - 2.5);
+} else {
+suggestedLoad = bestLoad + 2.5; // default progressive
+}
+
+const daysAgo = Math.round((Date.now() - new Date(bestDate)) / 86400000);
+suggBox.innerHTML = ` <div class="suggestion-badge"> ⚡ Sugestão baseada em ${bestExercise} (${daysAgo}d atrás · ${bestLoad}kg · RIR ${bestRIR ?? '?'}): <strong style="font-size:13px">${suggestedLoad}kg</strong> × ${bestReps ?? '?'} reps </div>`;
+}
+
+function onSessionClientChange(clientId) {
+// refresh suggestions for all exercise rows
+document.querySelectorAll(’[id^=“ex-muscle-”]’).forEach(sel => {
+const n = sel.id.replace(‘ex-muscle-’,’’);
+updateSuggestion(n);
+});
+}
+
+// ─── SAVE SESSION ─────────────────────────────────────────────────────────────
+function saveSession() {
+const clientId = document.getElementById(‘sf-client’).value;
+const date = document.getElementById(‘sf-date’).value;
+if (!clientId) { alert(‘Seleciona um cliente.’); return; }
+if (!date) { alert(‘Introduz a data da sessão.’); return; }
+
+// collect exercises
+const exercises = [];
+document.querySelectorAll(’[id^=“exrow-”]’).forEach(row => {
+const n = row.id.replace(‘exrow-’,’’);
+const name = document.getElementById(‘ex-name-’ + n).value.trim();
+const muscle = document.getElementById(‘ex-muscle-’ + n).value;
+if (!name && !muscle) return;
+const sets = [];
+row.querySelectorAll(’.set-row’).forEach(setRow => {
+sets.push({
+reps: setRow.querySelector(’.set-reps’).value,
+load: setRow.querySelector(’.set-load’).value,
+rir: setRow.querySelector(’.set-rir’).value,
+rpe: setRow.querySelector(’.set-rpe’).value,
+});
+});
+exercises.push({ name, muscle, sets });
+});
+
+if (!exercises.length) { alert(‘Adiciona pelo menos um exercício.’); return; }
+
+const session = {
+id: Date.now().toString(),
+clientId,
+date,
+name: document.getElementById(‘sf-name’).value.trim(),
+notes: document.getElementById(‘sf-notes’).value.trim(),
+meso: parseInt(document.getElementById(‘sf-meso’).value) || null,
+week: parseInt(document.getElementById(‘sf-week’).value) || null,
+exercises,
+};
+
+sessions.push(session);
+localStorage.setItem(‘ptcoach_sessions’, JSON.stringify(sessions));
+closeSessionForm();
+renderSessionsView();
+renderDashboard();
+alert(‘Sessão guardada com sucesso!’);
+}
+
+// ─── RENDER SESSIONS VIEW ─────────────────────────────────────────────────────
+function renderSessionsView() {
+// populate client filter
+const clientSel = document.getElementById(‘session-client-filter’);
+const currentVal = clientSel.value;
+clientSel.innerHTML = ‘<option value="">Todos os clientes</option>’ +
+clients.map(c => `<option value="${c.id}" ${c.id===currentVal?'selected':''}>${c.name}</option>`).join(’’);
+
+const filterClient = clientSel.value;
+const filterMuscle = document.getElementById(‘session-muscle-filter’).value;
+
+let filtered = […sessions].sort((a,b) => new Date(b.date)-new Date(a.date));
+if (filterClient) filtered = filtered.filter(s => s.clientId === filterClient);
+if (filterMuscle) filtered = filtered.filter(s =>
+s.exercises.some(e => e.muscle === filterMuscle)
+);
+
+const container = document.getElementById(‘sessions-list’);
+if (!filtered.length) {
+container.innerHTML = `<div class="empty-state"> <div class="empty-icon">▷</div> <div class="empty-title">Sem sessões registadas</div> <p style="font-size:14px;margin-bottom:16px">Regista a primeira sessão de treino.</p> <button class="btn btn-primary" onclick="openSessionForm('')">+ Nova Sessão</button> </div>`;
+return;
+}
+
+container.innerHTML = filtered.map(s => {
+const client = clients.find(c => c.id === s.clientId);
+const muscles = […new Set(s.exercises.map(e => e.muscle).filter(Boolean))];
+const totalSets = s.exercises.reduce((acc, e) => acc + (e.sets||[]).length, 0);
+const totalExs = s.exercises.length;
+const dateStr = new Date(s.date + ‘T12:00:00’).toLocaleDateString(‘pt-PT’, {weekday:‘short’,day:‘numeric’,month:‘short’});
+const mesoStr = (s.meso && s.week) ? `Meso ${s.meso} · Sem ${s.week}` : (s.meso ? `Meso ${s.meso}` : ‘’);
+
+```
+return `<div class="session-card">
+  <div class="session-card-header">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700">${s.name || 'Sessão de Treino'}</span>
+        ${mesoStr ? `<span style="font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 8px">${mesoStr}</span>` : ''}
+      </div>
+      ${client ? `<div style="font-size:13px;color:var(--muted);margin-top:3px">◎ ${client.name}</div>` : ''}
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <span class="session-date-badge">${dateStr}</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary" style="font-size:12px;padding:4px 10px" onclick="editSession('${s.id}')">Editar</button>
+        <button class="btn btn-danger" style="font-size:12px;padding:4px 10px" onclick="deleteSession('${s.id}')">✕</button>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:16px;font-size:13px;color:var(--muted);margin-bottom:8px">
+    <span><strong style="color:var(--text)">${totalExs}</strong> exercícios</span>
+    <span><strong style="color:var(--text)">${totalSets}</strong> séries</span>
+  </div>
+  <div class="exercise-summary">
+    ${muscles.map(m => {
+      const mg = MUSCLE_GROUPS.find(g => g.value === m);
+      return `<span class="muscle-tag">${mg?.label || m}</span>`;
+    }).join('')}
+```
+```
+  </div>
+  ${s.notes ? `<div style="margin-top:10px;font-size:13px;color:var(--muted);font-style:italic">📝 ${s.notes}</div>` : ''}
+  <details style="margin-top:12px">
+    <summary style="cursor:pointer;font-size:13px;color:var(--accent);list-style:none">▸ Ver exercícios</summary>
+    <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+      ${s.exercises.map(ex => {
+        const mg = MUSCLE_GROUPS.find(g => g.value === ex.muscle);
+        return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-weight:600;font-size:14px">${ex.name || '—'}</span>
+            ${mg ? `<span class="muscle-tag">${mg.label}</span>` : ''}
+          </div>
+          <div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr 1fr;gap:6px;font-size:12px">
+            <div style="color:var(--muted)"></div>
+            <div style="color:var(--muted);text-align:center">Reps</div>
+            <div style="color:var(--muted);text-align:center">Carga</div>
+            <div style="color:var(--muted);text-align:center">RIR</div>
+            <div style="color:var(--muted);text-align:center">RPE</div>
+            ${(ex.sets||[]).map((set,i) => `
+              <div style="color:var(--muted);font-size:11px">S${i+1}</div>
+              <div style="text-align:center">${set.reps||'—'}</div>
+              <div style="text-align:center;color:var(--accent);font-weight:600">${set.load ? set.load+'kg' : '—'}</div>
+              <div style="text-align:center">${set.rir !== '' && set.rir !== undefined ? set.rir : '—'}</div>
+              <div style="text-align:center">${set.rpe !== '' && set.rpe !== undefined ? set.rpe : '—'}</div>
+            `).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </details>
+</div>`;
+```
+
+}).join(’’);
+}
+
+function deleteSession(id) {
+if (!confirm(‘Eliminar esta sessão?’)) return;
+sessions = sessions.filter(s => s.id !== id);
+localStorage.setItem(‘ptcoach_sessions’, JSON.stringify(sessions));
+renderSessionsView();
+renderDashboard();
+}
+
+function editSession(id) {
+const s = sessions.find(x => x.id === id);
+if (!s) return;
+// For now open form with data
+const sel = document.getElementById(‘sf-client’);
+sel.innerHTML = ‘<option value="">Seleciona…</option>’ +
+clients.map(c => `<option value="${c.id}" ${c.id===s.clientId?'selected':''}>${c.name}</option>`).join(’’);
+document.getElementById(‘sf-date’).value = s.date;
+document.getElementById(‘sf-name’).value = s.name || ‘’;
+document.getElementById(‘sf-notes’).value = s.notes || ‘’;
+document.getElementById(‘sf-meso’).value = s.meso || ‘’;
+document.getElementById(‘sf-week’).value = s.week || ‘’;
+document.getElementById(‘exercises-container’).innerHTML = ‘’;
+exerciseRowCount = 0;
+(s.exercises || []).forEach(ex => addExerciseRow(ex));
+// delete old and save as new on save (simple approach)
+sessions = sessions.filter(x => x.id !== id);
+localStorage.setItem(‘ptcoach_sessions’, JSON.stringify(sessions));
+document.getElementById(‘session-form-overlay’).classList.add(‘open’);
+}
+
+// ─── PROGRESS VIEW ────────────────────────────────────────────────────────────
+function renderProgressView() {
+const sel = document.getElementById(‘progress-client-filter’);
+const curVal = sel.value;
+sel.innerHTML = ‘<option value="">Seleciona um cliente</option>’ +
+clients.map(c => `<option value="${c.id}" ${c.id===curVal?'selected':''}>${c.name}</option>`).join(’’);
+
+const clientId = sel.value;
+const container = document.getElementById(‘progress-content’);
+
+if (!clientId) {
+container.innerHTML = `<div class="empty-state"><div class="empty-icon">↗</div><div class="empty-title">Seleciona um cliente</div></div>`;
+return;
+}
+
+const clientSessions = sessions
+.filter(s => s.clientId === clientId)
+.sort((a,b) => new Date(a.date)-new Date(b.date));
+
+if (!clientSessions.length) {
+container.innerHTML = `<div class="empty-state"><div class="empty-icon">↗</div><div class="empty-title">Sem sessões registadas</div><p style="font-size:14px">Regista sessões para ver a progressão.</p></div>`;
+return;
+}
+
+// Build per-muscle data: date → max load, total volume (sets × reps × load), total sets
+const muscleData = {};
+clientSessions.forEach(sess => {
+(sess.exercises || []).forEach(ex => {
+if (!ex.muscle) return;
+if (!muscleData[ex.muscle]) muscleData[ex.muscle] = [];
+const loads = (ex.sets||[]).map(s => parseFloat(s.load)).filter(v => !isNaN(v) && v > 0);
+const reps = (ex.sets||[]).map(s => parseInt(s.reps)).filter(v => !isNaN(v));
+const volume = (ex.sets||[]).reduce((acc,s) => {
+const l = parseFloat(s.load)||0;
+const r = parseInt(s.reps)||0;
+return acc + (l*r);
+}, 0);
+muscleData[ex.muscle].push({
+date: sess.date,
+maxLoad: loads.length ? Math.max(…loads) : 0,
+volume: Math.round(volume),
+sets: (ex.sets||[]).length,
+exercise: ex.name,
+});
+});
+});
+
+if (!Object.keys(muscleData).length) {
+container.innerHTML = `<div class="empty-state"><div class="empty-title">Sem dados de exercícios</div></div>`;
+return;
+}
+
+container.innerHTML = Object.entries(muscleData).map(([muscle, entries]) => {
+const mg = MUSCLE_GROUPS.find(g => g.value === muscle);
+const label = mg?.label || muscle;
+const totalSets = entries.reduce((a,e) => a+e.sets, 0);
+const maxLoad = Math.max(…entries.map(e=>e.maxLoad));
+const totalVol = entries.reduce((a,e) => a+e.volume, 0);
+const lastLoad = entries[entries.length-1]?.maxLoad || 0;
+const firstLoad = entries[0]?.maxLoad || 0;
+const progress = firstLoad > 0 ? ((lastLoad - firstLoad) / firstLoad * 100).toFixed(1) : null;
+
+```
+const chartId = 'chart-' + muscle;
+const dates = entries.map(e => new Date(e.date+'T12:00:00').toLocaleDateString('pt-PT',{day:'numeric',month:'short'}));
+const loads = entries.map(e => e.maxLoad);
+
+return `<div class="progress-muscle-section">
+  <div class="progress-muscle-title">
+    <span>${label}</span>
+    ${progress !== null ? `<span style="font-size:13px;font-weight:400;color:${parseFloat(progress)>=0?'var(--success)':'var(--danger)'}">${parseFloat(progress)>=0?'+':''}${progress}% carga</span>` : ''}
+  </div>
+  <div class="volume-grid">
+    <div class="volume-card"><div class="volume-val">${lastLoad}kg</div><div class="volume-label">Carga Atual</div></div>
+    <div class="volume-card"><div class="volume-val">${maxLoad}kg</div><div class="volume-label">Carga Máxima</div></div>
+    <div class="volume-card"><div class="volume-val">${totalSets}</div><div class="volume-label">Total Séries</div></div>
+    <div class="volume-card"><div class="volume-val">${totalVol.toLocaleString()}</div><div class="volume-label">Volume Total (kg)</div></div>
+  </div>
+  <div class="chart-wrap" style="margin-top:16px">
+    <canvas id="${chartId}" class="progress-chart"></canvas>
+  </div>
+</div>`;
+```
+
+}).join(’’);
+
+// Draw charts using Canvas API (no library needed)
+Object.entries(muscleData).forEach(([muscle, entries]) => {
+if (entries.length < 2) return;
+const canvas = document.getElementById(‘chart-’ + muscle);
+if (!canvas) return;
+const ctx = canvas.getContext(‘2d’);
+const dpr = window.devicePixelRatio || 1;
+const W = canvas.parentElement.offsetWidth;
+const H = 140;
+canvas.width = W * dpr;
+canvas.height = H * dpr;
+canvas.style.width = W + ‘px’;
+canvas.style.height = H + ‘px’;
+ctx.scale(dpr, dpr);
+
+```
+const pad = { t:10, r:16, b:30, l:44 };
+const w = W - pad.l - pad.r;
+const h = H - pad.t - pad.b;
+const loads = entries.map(e => e.maxLoad);
+const minL = Math.min(...loads);
+const maxL = Math.max(...loads);
+const range = maxL - minL || 1;
+
+const xStep = w / (entries.length - 1);
+const yPos = v => pad.t + h - ((v - minL) / range) * h;
+const xPos = i => pad.l + i * xStep;
+
+// Grid lines
+ctx.strokeStyle = 'rgba(42,42,61,0.8)';
+ctx.lineWidth = 1;
+[0, 0.25, 0.5, 0.75, 1].forEach(f => {
+  const y = pad.t + h * (1 - f);
+  ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + w, y); ctx.stroke();
+  const val = (minL + range * f).toFixed(1);
+  ctx.fillStyle = 'rgba(112,112,160,0.8)';
+  ctx.font = '10px DM Sans, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(val + 'kg', pad.l - 4, y + 3);
+});
+
+// Gradient fill
+const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + h);
+grad.addColorStop(0, 'rgba(192,57,43,0.25)');
+grad.addColorStop(1, 'rgba(192,57,43,0)');
+ctx.beginPath();
+ctx.moveTo(xPos(0), yPos(loads[0]));
+entries.forEach((e, i) => { if (i > 0) ctx.lineTo(xPos(i), yPos(loads[i])); });
+ctx.lineTo(xPos(entries.length-1), pad.t + h);
+ctx.lineTo(xPos(0), pad.t + h);
+ctx.closePath();
+ctx.fillStyle = grad;
+ctx.fill();
+
+// Line
+ctx.beginPath();
+ctx.strokeStyle = '#c0392b';
+ctx.lineWidth = 2.5;
+ctx.lineJoin = 'round';
+ctx.lineCap = 'round';
+entries.forEach((e, i) => {
+  if (i === 0) ctx.moveTo(xPos(i), yPos(loads[i]));
+  else ctx.lineTo(xPos(i), yPos(loads[i]));
+});
+ctx.stroke();
+
+// Dots + dates
+entries.forEach((e, i) => {
+  ctx.beginPath();
+  ctx.arc(xPos(i), yPos(loads[i]), 4, 0, Math.PI*2);
+  ctx.fillStyle = '#c0392b';
+  ctx.fill();
+  ctx.strokeStyle = '#0a0a0f';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // date label every few points
+  if (entries.length <= 8 || i % Math.ceil(entries.length/6) === 0 || i === entries.length-1) {
+    const d = new Date(e.date+'T12:00:00').toLocaleDateString('pt-PT',{day:'numeric',month:'short'});
+    ctx.fillStyle = 'rgba(112,112,160,0.9)';
+    ctx.font = '9px DM Sans, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(d, xPos(i), pad.t + h + 16);
+  }
+});
+```
+
+});
+}
+
+// ─── CLIENT PORTAL ───────────────────────────────────────────────────────────
+let feedbacks = JSON.parse(localStorage.getItem(‘ptcoach_feedbacks’) || ‘[]’);
+
+function renderClientPortal() {
+const sel = document.getElementById(‘portal-client-select’);
+const curVal = sel.value;
+sel.innerHTML = ‘<option value="">Seleciona um cliente…</option>’ +
+clients.map(c => `<option value="${c.id}" ${c.id===curVal?'selected':''}>${c.name}</option>`).join(’’);
+
+const clientId = sel.value;
+const pdfBtn = document.getElementById(‘btn-export-pdf’);
+const fbBtn = document.getElementById(‘btn-add-feedback’);
+const container = document.getElementById(‘portal-content’);
+
+if (!clientId) {
+pdfBtn.style.display = ‘none’;
+fbBtn.style.display = ‘none’;
+container.innerHTML = `<div class="empty-state"> <div class="empty-icon">⬡</div> <div class="empty-title">Seleciona um cliente</div> <p style="font-size:14px">Escolhe um cliente para ver a sua vista personalizada.</p> </div>`;
+return;
+}
+
+pdfBtn.style.display = ‘’;
+fbBtn.style.display = ‘’;
+
+const client = clients.find(c => c.id === clientId);
+const clientSessions = sessions
+.filter(s => s.clientId === clientId)
+.sort((a,b) => new Date(b.date)-new Date(a.date));
+const clientFeedbacks = feedbacks
+.filter(f => f.clientId === clientId)
+.sort((a,b) => new Date(b.date)-new Date(a.date));
+const clientMacro = macros.filter(m => m.clientId === clientId).slice(-1)[0];
+const gl = guidelines[client.goal];
+const initials = client.name.split(’ ‘).map(w=>w[0]).slice(0,2).join(’’).toUpperCase();
+
+// ── CURRENT WEEK PLAN ──
+const today = new Date();
+const dayOfWeek = today.getDay(); // 0=Sun
+const startOfWeek = new Date(today);
+startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+// find this week’s sessions from macro
+let weekPlanHTML = ‘’;
+if (clientMacro) {
+const n = clientMacro.sessionsPerWeek || 3;
+const labels = clientMacro.sessionLabels || [];
+const dayNames = [‘Segunda’,‘Terça’,‘Quarta’,‘Quinta’,‘Sexta’,‘Sábado’,‘Domingo’];
+const sessionDays = [];
+// Distribute sessions evenly across week
+const spacing = Math.floor(7 / n);
+for (let i = 0; i < n; i++) {
+const d = new Date(startOfWeek);
+d.setDate(startOfWeek.getDate() + i * spacing);
+sessionDays.push(d);
+}
+
+```
+weekPlanHTML = sessionDays.map((d, i) => {
+  const dateStr = d.toISOString().slice(0,10);
+  const sess = clientSessions.find(s => s.date === dateStr);
+  const isToday = d.toDateString() === today.toDateString();
+  const isPast = d < today && !isToday;
+  const label = labels[i] || ('Sessão ' + (i+1));
+  const muscles = sess ? [...new Set(sess.exercises.map(e=>e.muscle).filter(Boolean))] : [];
+  const dayLabel = dayNames[d.getDay() === 0 ? 6 : d.getDay()-1];
+
+  return `<div class="week-plan-row ${sess?'done':''} ${isToday?'today':''}">
+    <div>
+      <div style="font-size:12px;color:var(--muted)">${dayLabel}</div>
+      <div style="font-size:11px;color:var(--muted)">${d.toLocaleDateString('pt-PT',{day:'numeric',month:'short'})}</div>
+    </div>
+    <div>
+      <div class="session-name-label">${sess?.name || label}</div>
+      <div class="session-muscles-row" style="margin-top:4px">
+        ${muscles.length
+          ? muscles.map(m=>{const mg=MUSCLE_GROUPS.find(g=>g.value===m);return `<span class="muscle-tag">${mg?.label||m}</span>`;}).join('')
+          : `<span style="font-size:12px;color:var(--muted)">${isToday?'⚡ Hoje!':isPast?'—':'Planeado'}</span>`
+        }
+      </div>
+    </div>
+    <div style="text-align:right">
+      ${sess ? '<span style="color:var(--success);font-size:18px">✓</span>'
+        : isToday ? '<span style="color:var(--accent);font-size:12px;font-weight:700">HOJE</span>'
+        : ''}
+    </div>
+  </div>`;
+}).join('');
+```
+
+} else {
+weekPlanHTML = `<div style="color:var(--muted);font-size:14px;padding:16px 0">Sem macrociclo configurado. Cria um macrociclo para ver o plano semanal.</div>`;
+}
+
+// ── LOAD PROGRESS per muscle ──
+const muscleProgress = {};
+clientSessions.forEach(sess => {
+(sess.exercises||[]).forEach(ex => {
+if (!ex.muscle) return;
+const loads = (ex.sets||[]).map(s=>parseFloat(s.load)).filter(v=>!isNaN(v)&&v>0);
+if (!loads.length) return;
+const max = Math.max(…loads);
+if (!muscleProgress[ex.muscle] || max > muscleProgress[ex.muscle].current) {
+if (!muscleProgress[ex.muscle]) muscleProgress[ex.muscle] = { first: max, current: max };
+else muscleProgress[ex.muscle].current = max;
+}
+});
+});
+// recalculate first load properly
+const muscleFirst = {};
+[…clientSessions].reverse().forEach(sess => {
+(sess.exercises||[]).forEach(ex => {
+if (!ex.muscle) return;
+const loads = (ex.sets||[]).map(s=>parseFloat(s.load)).filter(v=>!isNaN(v)&&v>0);
+if (loads.length) muscleFirst[ex.muscle] = Math.max(…loads);
+});
+});
+
+const maxLoad = Math.max(…Object.values(muscleProgress).map(m=>m.current), 1);
+const progressBarsHTML = Object.entries(muscleProgress).map(([muscle, data]) => {
+const mg = MUSCLE_GROUPS.find(g=>g.value===muscle);
+const first = muscleFirst[muscle] || data.first;
+const pct = (data.current / maxLoad) * 100;
+const diff = data.current - first;
+const diffStr = diff > 0 ? `<span style="color:var(--success);font-size:11px">+${diff}kg</span>`
+: diff < 0 ? `<span style="color:var(--danger);font-size:11px">${diff}kg</span>` : ‘’;
+return `<div class="mini-progress-row"> <div class="mini-muscle-label">${mg?.label||muscle}</div> <div class="mini-bar-wrap"><div class="mini-bar" style="width:${pct}%"></div></div> <div class="mini-load-label">${data.current}kg ${diffStr}</div> </div>`;
+}).join(’’) || ‘<div style="color:var(--muted);font-size:14px">Sem dados de progressão ainda.</div>’;
+
+// ── RECENT FEEDBACK ──
+const feedbackHTML = clientFeedbacks.slice(0,5).map(fb => {
+const sess = sessions.find(s=>s.id===fb.sessionId);
+const moodEmojis = [’’,‘😞’,‘😕’,‘😐’,‘🙂’,‘😄’];
+const moodColors = [’’,’#f06060’,’#f09060’,’#f0c060’,’#6abf5e’,’#6abf5e’];
+return `<div class="feedback-card"> <div style="display:flex;justify-content:space-between;align-items:flex-start"> <div> <div style="font-weight:600;font-size:14px">${sess?.name || 'Sessão'}</div> <div style="font-size:12px;color:var(--muted)">${new Date(fb.date+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'short',day:'numeric',month:'short'})}</div> </div> <span style="font-size:24px">${moodEmojis[fb.mood]||'—'}</span> </div> <div class="feedback-scores"> <div class="feedback-score-item"> <div class="feedback-score-val" style="color:var(--accent)">${fb.effort}/10</div> <div class="feedback-score-label">Esforço</div> </div> <div class="feedback-score-item"> <div class="feedback-score-val" style="color:${fb.pain>5?'var(--danger)':fb.pain>2?'#f0c060':'var(--success)'}">${fb.pain}/10</div> <div class="feedback-score-label">Dor</div> </div> <div class="feedback-score-item"> <div class="feedback-score-val" style="color:var(--accent2)">${fb.sleep}/5</div> <div class="feedback-score-label">Sono</div> </div> ${fb.mood ? `<div class="feedback-score-item">
+<div class="feedback-score-val" style="color:${moodColors[fb.mood]}">${fb.mood}/5</div>
+<div class="feedback-score-label">Humor</div>
+</div>`: ''} </div> ${fb.notes ?`<div style="margin-top:10px;font-size:13px;color:var(--muted);font-style:italic;padding-top:8px;border-top:1px solid var(--border)">”${fb.notes}”</div>`: ''} ${fb.pain > 6 ?`<div class="alert alert-warning" style="margin-top:10px;margin-bottom:0">⚠️ Dor elevada reportada (${fb.pain}/10). Avaliar antes da próxima sessão.</div>` : ''} </div>`;
+}).join(’’) || ‘<div style="color:var(--muted);font-size:14px;padding:8px 0">Sem feedback registado ainda.</div>’;
+
+// ── RECENT SESSIONS LIST ──
+const recentHTML = clientSessions.slice(0,5).map(s => {
+const muscles = […new Set(s.exercises.map(e=>e.muscle).filter(Boolean))];
+const totalSets = s.exercises.reduce((a,e)=>a+(e.sets||[]).length,0);
+const dateStr = new Date(s.date+‘T12:00:00’).toLocaleDateString(‘pt-PT’,{weekday:‘short’,day:‘numeric’,month:‘short’});
+return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"> <div> <div style="font-weight:600;font-size:14px">${s.name||'Sessão de Treino'}</div> <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap"> ${muscles.map(m=>{const mg=MUSCLE_GROUPS.find(g=>g.value===m);return `<span class="muscle-tag">${mg?.label||m}</span>`;}).join('')} </div> </div> <div style="text-align:right;flex-shrink:0;margin-left:12px"> <div style="font-size:12px;color:var(--muted)">${dateStr}</div> <div style="font-size:12px;color:var(--text);margin-top:2px">${totalSets} séries</div> </div> </div>`;
+}).join(’’) || ‘<div style="color:var(--muted);font-size:14px;padding:8px 0">Sem sessões registadas.</div>’;
+
+// ── RENDER ALL ──
+container.innerHTML = `<div class="portal-hero" id="portal-print-header"> <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap"> <div style="width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#0a0a0f;flex-shrink:0">${initials}</div> <div> <div class="portal-client-name">${client.name}</div> <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"> <span class="tag tag-green">${gl?.label?.split('(')[0].trim()||client.goal}</span> ${client.experience ?`<span class="tag tag-blue">${{sedentario:‘Sedentário’,iniciante:‘Iniciante’,intermedio:‘Intermédio’,avancado:‘Avançado’}[client.experience]||client.experience}</span>`: ''} ${clientMacro ?`<span class="tag tag-blue">◈ ${clientMacro.name}</span>` : ‘’}
+<span class="tag tag-blue">${clientSessions.length} sessões</span>
+</div>
+</div>
+</div>
+</div>
+
+```
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+  <div class="portal-section">
+    <div class="portal-section-title">📅 Plano Esta Semana</div>
+    <div class="week-plan-grid">${weekPlanHTML}</div>
+  </div>
+  <div class="portal-section">
+    <div class="portal-section-title">↗ Progressão de Cargas</div>
+    ${progressBarsHTML}
+  </div>
+</div>
+
+<div class="portal-section">
+  <div class="portal-section-title" style="display:flex;justify-content:space-between;align-items:center">
+    <span>💬 Feedback das Sessões</span>
+    <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="openFeedbackForm('${clientId}')">+ Novo</button>
+  </div>
+  ${feedbackHTML}
+</div>
+
+<div class="portal-section">
+  <div class="portal-section-title">🏋️ Últimas Sessões</div>
+  ${recentHTML}
+</div>
+
+${renderAFPortalCard(client)}
+
+<div class="portal-section">
+  <div class="portal-section-title">⚡ Guidelines do Objetivo</div>
+  ${gl ? `<div class="guidelines-box" style="margin:0;border:none;background:none;padding:0">
+    <div class="guidelines-title" style="margin-bottom:12px">${gl.label}</div>
+    ${gl.items.map(([k,v])=>`<div class="guideline-item"><span class="guideline-key">${k}</span><span class="guideline-val">${v}</span></div>`).join('')}
+  </div>` : '<div style="color:var(--muted)">Sem guidelines disponíveis.</div>'}
+</div>
+```
+
+`;
+}
+
+// ─── FEEDBACK ─────────────────────────────────────────────────────────────────
+function openFeedbackForm(clientId) {
+const sel = document.getElementById(‘fb-client’);
+sel.innerHTML = ‘<option value="">Seleciona…</option>’ +
+clients.map(c=>`<option value="${c.id}" ${c.id===clientId?'selected':''}>${c.name}</option>`).join(’’);
+if (clientId) {
+sel.value = clientId;
+populateFeedbackSessions();
+}
+document.getElementById(‘fb-effort’).value = 7;
+document.getElementById(‘fb-effort-val’).textContent = ‘7’;
+document.getElementById(‘fb-pain’).value = 0;
+document.getElementById(‘fb-pain-val’).textContent = ‘0’;
+document.getElementById(‘fb-sleep’).value = 3;
+document.getElementById(‘fb-sleep-val’).textContent = ‘3’;
+document.getElementById(‘fb-notes’).value = ‘’;
+document.querySelectorAll(’.emoji-btn’).forEach(b=>b.classList.remove(‘selected’));
+document.getElementById(‘feedback-form-overlay’).classList.add(‘open’);
+}
+
+function closeFeedbackForm() {
+document.getElementById(‘feedback-form-overlay’).classList.remove(‘open’);
+}
+
+function populateFeedbackSessions() {
+const clientId = document.getElementById(‘fb-client’).value;
+const sel = document.getElementById(‘fb-session’);
+const clientSessions = sessions
+.filter(s=>s.clientId===clientId)
+.sort((a,b)=>new Date(b.date)-new Date(a.date));
+sel.innerHTML = ‘<option value="">Seleciona sessão…</option>’ +
+clientSessions.map(s=>`<option value="${s.id}">${s.name||'Sessão'} — ${new Date(s.date+'T12:00:00').toLocaleDateString('pt-PT',{day:'numeric',month:'short'})}</option>`).join(’’);
+}
+
+function selectEmoji(type, btn) {
+document.querySelectorAll(`#fb-${type}-selector .emoji-btn`).forEach(b=>b.classList.remove(‘selected’));
+btn.classList.add(‘selected’);
+}
+
+function saveFeedback() {
+const clientId = document.getElementById(‘fb-client’).value;
+const sessionId = document.getElementById(‘fb-session’).value;
+if (!clientId) { alert(‘Seleciona um cliente.’); return; }
+const moodBtn = document.querySelector(’#fb-mood-selector .emoji-btn.selected’);
+const session = sessions.find(s=>s.id===sessionId);
+const fb = {
+id: Date.now().toString(),
+clientId,
+sessionId,
+date: session?.date || new Date().toISOString().slice(0,10),
+mood: moodBtn ? parseInt(moodBtn.dataset.val) : null,
+effort: parseInt(document.getElementById(‘fb-effort’).value),
+pain: parseInt(document.getElementById(‘fb-pain’).value),
+sleep: parseInt(document.getElementById(‘fb-sleep’).value),
+notes: document.getElementById(‘fb-notes’).value.trim(),
+};
+feedbacks.push(fb);
+localStorage.setItem(‘ptcoach_feedbacks’, JSON.stringify(feedbacks));
+closeFeedbackForm();
+if (currentView === ‘client-portal’) renderClientPortal();
+alert(‘Feedback guardado!’);
+}
+
+// ─── PDF EXPORT ───────────────────────────────────────────────────────────────
+function exportClientPDF() {
+window.print();
+}
+
+// ─── VOICE COMMAND ───────────────────────────────────────────────────────────
+window.isListening = false;
+let recognition = null;
+
+const MUSCLE_KEYWORDS = {
+‘peito’: [‘peito’,‘peitoral’,‘chest’,‘supino’,‘fly’,‘crossover’,‘press’],
+‘costas’: [‘costas’,‘dorsal’,‘lat’,‘remo’,‘pulldown’,‘pull’,‘row’,‘deadlift’,‘terra’],
+‘ombros’: [‘ombro’,‘ombros’,‘shoulder’,‘press militar’,‘elevação lateral’,‘lateral raise’,‘arnold’],
+‘biceps’: [‘bícep’,‘bicep’,‘curl’,‘rosca’],
+‘triceps’: [‘trícep’,‘tricep’,‘extensão’,‘dips’,‘paralelas’,‘pulldown trícep’,‘skull’],
+‘quadricipite’: [‘quadricípite’,‘quadricipite’,‘quad’,‘agachamento’,‘squat’,‘leg press’,‘hack squat’,‘leg extension’],
+‘isquiotibiais’: [‘isquiotibiais’,‘isquio’,‘leg curl’,‘curl femoral’,‘stiff’,‘romanian’],
+‘gluteos’: [‘glúteo’,‘gluteo’,‘hip thrust’,‘ponte’,‘abdutor’],
+‘gemeos’: [‘gémeos’,‘gemeos’,‘panturrilha’,‘calf raise’],
+‘abdominais’: [‘abdominais’,‘abdominal’,‘core’,‘prancha’,‘crunch’],
+‘antebracos’: [‘antebraço’,‘antebraco’,‘wrist’],
+‘full_body’: [‘full body’,‘corpo completo’,‘kettlebell swing’,‘power clean’,‘clean’,‘deadlift’],
+};
+
+function detectMuscle(exerciseName) {
+const lower = exerciseName.toLowerCase();
+for (const [muscle, keywords] of Object.entries(MUSCLE_KEYWORDS)) {
+if (keywords.some(k => lower.includes(k))) return muscle;
+}
+return ‘’;
+}
+
+function toggleVoice() {
+const panel = document.getElementById(‘voice-panel’);
+const isOpen = panel.style.display !== ‘none’;
+panel.style.display = isOpen ? ‘none’ : ‘block’;
+document.getElementById(‘voice-label’).textContent = isOpen ? ‘Voz’ : ‘Fechar’;
+document.getElementById(‘voice-btn’).style.background = isOpen ? ‘’ : ‘rgba(192,57,43,0.2)’;
+}
+
+function startListening() {
+if (!(‘webkitSpeechRecognition’ in window) && !(‘SpeechRecognition’ in window)) {
+alert(‘O teu browser não suporta reconhecimento de voz. Usa o campo de texto.’);
+return;
+}
+if (window.isListening) { stopListening(); return; }
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+recognition = new SpeechRecognition();
+recognition.lang = ‘pt-PT’;
+recognition.continuous = false;
+recognition.interimResults = true;
+recognition.maxAlternatives = 3;
+
+window.isListening = true;
+const micBtn = document.getElementById(‘mic-btn’);
+micBtn.classList.add(‘listening’);
+micBtn.textContent = ‘⏹’;
+document.getElementById(‘voice-pulse’).style.background = ‘var(–accent)’;
+document.getElementById(‘voice-pulse’).style.animation = ‘pulse-ring 1s ease-out infinite’;
+document.getElementById(‘voice-status-text’).textContent = ‘A ouvir… fala agora’;
+document.getElementById(‘voice-transcript’).textContent = ‘’;
+
+recognition.onresult = (e) => {
+let transcript = ‘’;
+for (let i = e.resultIndex; i < e.results.length; i++) {
+transcript += e.results[i][0].transcript;
+}
+document.getElementById(‘voice-transcript’).textContent = ‘”’ + transcript + ‘”’;
+if (e.results[e.results.length-1].isFinal) {
+stopListening();
+parseVoiceText(transcript);
+}
+};
+
+recognition.onerror = (e) => {
+stopListening();
+const msgs = {
+‘not-allowed’: ‘🔒 Microfone bloqueado — clica no cadeado 🔒 na barra do browser → Microfone → Permitir. Em ficheiros locais usa o campo de texto.’,
+‘no-speech’: ‘🎤 Não detetou voz — tenta falar mais perto do microfone.’,
+‘network’: ‘🌐 Sem ligação — a transcrição de voz requer internet. Usa o campo de texto.’,
+‘audio-capture’: ‘🎤 Microfone não encontrado — verifica se está ligado.’,
+‘service-not-allowed’: ‘🔒 Serviço de voz não permitido neste contexto. Usa o campo de texto.’,
+};
+document.getElementById(‘voice-status-text’).textContent = msgs[e.error] || (‘Erro: ’ + e.error + ’ — usa o campo de texto.’);
+document.getElementById(‘voice-status’).style.borderColor = ‘rgba(224,48,32,0.4)’;
+setTimeout(() => { document.getElementById(‘voice-status’).style.borderColor = ‘rgba(192,57,43,0.2)’; }, 5000);
+};
+
+recognition.onend = () => { if (window.isListening) stopListening(); };
+recognition.start();
+}
+
+function stopListening() {
+window.isListening = false;
+if (recognition) { try { recognition.stop(); } catch(e){} }
+const micBtn = document.getElementById(‘mic-btn’);
+micBtn.classList.remove(‘listening’);
+micBtn.textContent = ‘🎙️’;
+micBtn.style.background = ‘rgba(192,57,43,0.08)’;
+document.getElementById(‘voice-pulse’).style.background = ‘var(–muted)’;
+document.getElementById(‘voice-pulse’).style.animation = ‘’;
+document.getElementById(‘voice-status-text’).textContent = ‘Carrega no microfone para falar’;
+}
+
+async function parseVoiceText(text) {
+if (!text || !text.trim()) return;
+document.getElementById(‘voice-text-input’).value = ‘’;
+document.getElementById(‘voice-processing’).style.display = ‘block’;
+document.getElementById(‘voice-status-text’).textContent = ‘A interpretar: “’ + text + ‘”’;
+
+try {
+const resp = await fetch(‘https://api.anthropic.com/v1/messages’, {
+method: ‘POST’,
+headers: { ‘Content-Type’: ‘application/json’ },
+body: JSON.stringify({
+model: ‘claude-sonnet-4-20250514’,
+max_tokens: 1000,
+messages: [{
+role: ‘user’,
+content: `Interpreta este comando de voz de um Personal Trainer em português e extrai os dados do exercício.
+Comando: “${text}”
+
+Responde APENAS com JSON válido, sem markdown, neste formato exato:
+{
+“exercises”: [
+{
+“name”: “nome do exercício”,
+“muscle”: “grupo muscular em português”,
+“sets”: [
+{“reps”: número, “load”: número_kg, “rir”: número_ou_null, “rpe”: número_ou_null}
+]
+}
+]
+}
+
+Regras:
+
+- Se o utilizador disser “4 séries de 10” cria 4 objetos set iguais
+- Se disser “3x12” = 3 séries de 12 reps
+- Converte “quilos” ou “kg” para número
+- muscle deve ser exatamente um de: peito, costas, ombros, biceps, triceps, quadricipite, isquiotibiais, gluteos, gemeos, abdominais, antebracos, full_body
+- Se não mencionou RIR nem RPE usa null
+- Pode haver mais do que um exercício no comando
+- Se não perceberes algum valor usa null`
+  }]
+  })
+  });
+  
+  const data = await resp.json();
+  const rawText = (data.content || []).map(b => b.text || ‘’).join(’’);
+  const clean = rawText.replace(/`json|`/g, ‘’).trim();
+  const parsed = JSON.parse(clean);
+  
+  if (parsed.exercises && parsed.exercises.length) {
+  parsed.exercises.forEach(ex => {
+  // Auto-detect muscle if AI didn’t fill it
+  if (!ex.muscle) ex.muscle = detectMuscle(ex.name);
+  addExerciseRow(ex);
+  });
+  document.getElementById(‘voice-status-text’).textContent = `✓ ${parsed.exercises.length} exercício(s) adicionado(s)!`;
+  document.getElementById(‘voice-status’).style.borderColor = ‘rgba(96,240,160,0.4)’;
+  setTimeout(() => {
+  document.getElementById(‘voice-status’).style.borderColor = ‘rgba(192,57,43,0.2)’;
+  document.getElementById(‘voice-status-text’).textContent = ‘Carrega no microfone para falar’;
+  }, 3000);
+  } else {
+  throw new Error(‘Sem exercícios no resultado’);
+  }
+  } catch (err) {
+  console.error(‘Voice parse error:’, err);
+  // Fallback: parse locally with regex
+  const fallback = parseVoiceLocal(text);
+  if (fallback) {
+  addExerciseRow(fallback);
+  document.getElementById(‘voice-status-text’).textContent = ‘✓ Exercício adicionado (modo local)’;
+  } else {
+  document.getElementById(‘voice-status-text’).textContent = ‘⚠ Não foi possível interpretar. Tenta reformular ou adiciona manualmente.’;
+  }
+  } finally {
+  document.getElementById(‘voice-processing’).style.display = ‘none’;
+  }
+  }
+
+// Fallback local parser (regex-based, no API needed)
+function parseVoiceLocal(text) {
+const t = text.toLowerCase();
+
+// Extract exercise name (first meaningful words before numbers)
+const nameMatch = t.match(/^([a-záàâãéèêíìîóòôõúùûçñ\s]+?)(?=\d|$)/i);
+const name = nameMatch ? nameMatch[1].trim() : text.split(/\d/)[0].trim();
+
+// Series x reps patterns: “4x10”, “4 séries de 10”, “4 series 10”
+let sets = 1, reps = null;
+const sxr = t.match(/(\d+)\s*[x×]\s*(\d+)/);
+const seriesMatch = t.match(/(\d+)\s*s[eé]ries?\s*(?:de\s*)?(\d+)/);
+if (sxr) { sets = parseInt(sxr[1]); reps = parseInt(sxr[2]); }
+else if (seriesMatch) { sets = parseInt(seriesMatch[1]); reps = parseInt(seriesMatch[2]); }
+else { const repsOnly = t.match(/(\d+)\s*rep/); if (repsOnly) reps = parseInt(repsOnly[1]); }
+
+// Load
+const loadMatch = t.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?|kilo)/);
+const load = loadMatch ? parseFloat(loadMatch[1].replace(’,’,’.’)) : null;
+
+// RIR
+const rirMatch = t.match(/rir\s*(\d+)/i);
+const rir = rirMatch ? parseInt(rirMatch[1]) : null;
+
+// RPE
+const rpeMatch = t.match(/rpe\s*(\d+)/i);
+const rpe = rpeMatch ? parseInt(rpeMatch[1]) : null;
+
+if (!name) return null;
+
+const setsArr = Array.from({length: sets}, () => ({ reps: reps, load: load, rir: rir, rpe: rpe }));
+return {
+name: name.charAt(0).toUpperCase() + name.slice(1),
+muscle: detectMuscle(name),
+sets: setsArr
+};
+}
+
+// ─── CLIENT VOICE COMMAND ────────────────────────────────────────────────────
+window.isClientListening = false;
+let clientRecognition = null;
+
+function toggleClientVoice() {
+const panel = document.getElementById(‘client-voice-panel’);
+const isOpen = panel.style.display !== ‘none’;
+panel.style.display = isOpen ? ‘none’ : ‘block’;
+document.getElementById(‘client-voice-label’).textContent = isOpen ? ‘Usar Voz’ : ‘Fechar’;
+}
+
+function startClientListening() {
+if (!(‘webkitSpeechRecognition’ in window) && !(‘SpeechRecognition’ in window)) {
+alert(‘O teu browser não suporta reconhecimento de voz. Usa o campo de texto.’);
+return;
+}
+if (window.isClientListening) { stopClientListening(); return; }
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+clientRecognition = new SpeechRecognition();
+clientRecognition.lang = ‘pt-PT’;
+clientRecognition.continuous = false;
+clientRecognition.interimResults = true;
+clientRecognition.maxAlternatives = 3;
+
+window.isClientListening = true;
+const micBtn = document.getElementById(‘client-mic-btn’);
+micBtn.classList.add(‘listening’);
+micBtn.textContent = ‘⏹’;
+document.getElementById(‘client-voice-pulse’).style.background = ‘var(–accent)’;
+document.getElementById(‘client-voice-status-text’).textContent = ‘A ouvir… fala agora’;
+document.getElementById(‘client-voice-transcript’).textContent = ‘’;
+
+clientRecognition.onresult = (e) => {
+let transcript = ‘’;
+for (let i = e.resultIndex; i < e.results.length; i++) {
+transcript += e.results[i][0].transcript;
+}
+document.getElementById(‘client-voice-transcript’).textContent = ‘”’ + transcript + ‘”’;
+if (e.results[e.results.length - 1].isFinal) {
+stopClientListening();
+parseClientVoice(transcript);
+}
+};
+
+clientRecognition.onerror = (e) => {
+stopClientListening();
+const msgs = {
+‘not-allowed’: ‘🔒 Microfone bloqueado — clica no cadeado 🔒 na barra do browser → Microfone → Permitir.’,
+‘no-speech’: ‘🎤 Não detetou voz — tenta falar mais perto do microfone.’,
+‘network’: ‘🌐 Sem ligação — usa o campo de texto.’,
+‘audio-capture’: ‘🎤 Microfone não encontrado.’,
+‘service-not-allowed’: ‘🔒 Não permitido neste contexto — usa o campo de texto.’,
+};
+document.getElementById(‘client-voice-status-text’).textContent = msgs[e.error] || (’Erro: ’ + e.error);
+};
+
+clientRecognition.onend = () => { if (window.isClientListening) stopClientListening(); };
+clientRecognition.start();
+}
+
+function stopClientListening() {
+window.isClientListening = false;
+if (clientRecognition) { try { clientRecognition.stop(); } catch(e){} }
+const micBtn = document.getElementById(‘client-mic-btn’);
+micBtn.classList.remove(‘listening’);
+micBtn.textContent = ‘🎙️’;
+micBtn.style.background = ‘rgba(192,57,43,0.08)’;
+document.getElementById(‘client-voice-pulse’).style.background = ‘var(–muted)’;
+document.getElementById(‘client-voice-status-text’).textContent = ‘Carrega no microfone ou escreve abaixo’;
+}
+
+async function parseClientVoice(text) {
+if (!text || !text.trim()) return;
+document.getElementById(‘client-voice-text’).value = ‘’;
+document.getElementById(‘client-voice-processing’).style.display = ‘block’;
+document.getElementById(‘client-voice-status-text’).textContent = ‘A interpretar…’;
+
+try {
+const resp = await fetch(‘https://api.anthropic.com/v1/messages’, {
+method: ‘POST’,
+headers: { ‘Content-Type’: ‘application/json’ },
+body: JSON.stringify({
+model: ‘claude-sonnet-4-20250514’,
+max_tokens: 1000,
+messages: [{
+role: ‘user’,
+content: `Interpreta este comando de voz de um Personal Trainer sobre um novo cliente e extrai os dados.
+Comando: “${text}”
+
+Responde APENAS com JSON válido, sem markdown, neste formato exato:
+{
+“name”: “nome completo ou null”,
+“age”: número_ou_null,
+“gender”: “M” ou “F” ou “O” ou null,
+“sessionsWeek”: número_ou_null,
+“experience”: “sedentario” ou “iniciante” ou “intermedio” ou “avancado” ou null,
+“goal”: “hipertrofia” ou “forca” ou “perda_gordura” ou “resistencia” ou “saude” ou “recomposicao” ou null,
+“weight”: número_kg_ou_null,
+“height”: número_cm_ou_null,
+“fat”: percentagem_massa_gorda_ou_null,
+“muscle”: percentagem_massa_muscular_ou_null,
+“water”: percentagem_agua_ou_null,
+“bmr”: kcal_ou_null,
+“limitations”: [“lombalgia”,“joelho”,“ombro”,“hipertensao”,“diabetes”,“cardio”,“osteoporose”,“gravidez”] apenas os mencionados,
+“limitationsNotes”: “notas adicionais ou null”
+}
+
+Regras de interpretação:
+
+- “hipertrofia”, “ganho muscular”, “crescimento muscular” → goal: “hipertrofia”
+- “perda de gordura”, “emagrecer”, “perder peso”, “definição” → goal: “perda_gordura”
+- “força”, “força máxima” → goal: “forca”
+- “saúde”, “bem-estar”, “saúde geral” → goal: “saude”
+- “recomposição”, “recomposição corporal” → goal: “recomposicao”
+- “resistência”, “cardio” → goal: “resistencia”
+- “sedentário”, “sem histórico” → experience: “sedentario”
+- “iniciante”, “principiante”, “menos de 1 ano”, “começou agora” → experience: “iniciante”
+- “intermédio”, “1 a 3 anos”, “alguma experiência” → experience: “intermedio”
+- “avançado”, “mais de 3 anos”, “experiente” → experience: “avancado”
+- “lombalgia”, “dores nas costas”, “hérnia” → limitations: [“lombalgia”]
+- “hipertensão”, “tensão alta” → limitations: [“hipertensao”]
+- A idade em anos NÃO é a data de nascimento, guarda apenas o número`
+  }]
+  })
+  });
+  
+  const data = await resp.json();
+  const rawText = (data.content || []).map(b => b.text || ‘’).join(’’);
+  const clean = rawText.replace(/`json|`/g, ‘’).trim();
+  const parsed = JSON.parse(clean);
+  applyClientVoiceData(parsed);
+  
+  } catch (err) {
+  console.error(‘Client voice parse error:’, err);
+  const fallback = parseClientVoiceLocal(text);
+  applyClientVoiceData(fallback);
+  } finally {
+  document.getElementById(‘client-voice-processing’).style.display = ‘none’;
+  }
+  }
+
+function applyClientVoiceData(data) {
+if (!data) {
+document.getElementById(‘client-voice-status-text’).textContent = ‘⚠ Não foi possível interpretar. Preenche manualmente.’;
+return;
+}
+
+let filled = 0;
+
+if (data.name) { document.getElementById(‘f-name’).value = data.name; filled++; }
+if (data.gender) { document.getElementById(‘f-gender’).value = data.gender; filled++; }
+if (data.sessionsWeek) { document.getElementById(‘f-sessions-week’).value = data.sessionsWeek; filled++; }
+if (data.experience) { document.getElementById(‘f-experience’).value = data.experience; filled++; }
+if (data.goal) { document.getElementById(‘f-goal’).value = data.goal; updateGuidelinesPreview(); filled++; }
+if (data.weight) { document.getElementById(‘f-weight’).value = data.weight; filled++; }
+if (data.height) { document.getElementById(‘f-height’).value = data.height; filled++; }
+if (data.fat) { document.getElementById(‘f-fat’).value = data.fat; filled++; }
+if (data.muscle) { document.getElementById(‘f-muscle’).value = data.muscle; filled++; }
+if (data.water) { document.getElementById(‘f-water’).value = data.water; filled++; }
+if (data.bmr) { document.getElementById(‘f-bmr’).value = data.bmr; filled++; }
+if (data.limitationsNotes) { document.getElementById(‘f-limitations-notes’).value = data.limitationsNotes; filled++; }
+
+// Auto-calc DOB from age
+if (data.age && !data.dob) {
+const year = new Date().getFullYear() - data.age;
+document.getElementById(‘f-dob’).value = year + ‘-01-01’;
+filled++;
+}
+
+// Auto-calc BMI
+const w = parseFloat(document.getElementById(‘f-weight’).value);
+const h = parseFloat(document.getElementById(‘f-height’).value) / 100;
+if (w && h) document.getElementById(‘f-bmi’).value = (w / (h * h)).toFixed(1);
+
+// Apply limitations
+if (data.limitations && data.limitations.length) {
+document.querySelectorAll(’#limitations-group .checkbox-item’).forEach(el => {
+const val = el.querySelector(‘input’).value;
+if (data.limitations.includes(val)) el.classList.add(‘selected’);
+});
+filled++;
+}
+
+const statusEl = document.getElementById(‘client-voice-status-text’);
+if (filled > 0) {
+statusEl.textContent = `✓ ${filled} campo(s) preenchido(s)! Verifica e completa os restantes.`;
+document.getElementById(‘client-voice-status’).style.borderColor = ‘rgba(96,240,160,0.4)’;
+setTimeout(() => {
+document.getElementById(‘client-voice-status’).style.borderColor = ‘rgba(192,57,43,0.2)’;
+}, 4000);
+} else {
+statusEl.textContent = ‘⚠ Não foi possível extrair dados. Tenta reformular.’;
+}
+}
+
+// Fallback local parser for client voice
+function parseClientVoiceLocal(text) {
+const t = text.toLowerCase();
+const result = {};
+
+// Name: first capitalized words before comma or numbers
+const nameMatch = text.match(/^([A-ZÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ][a-záàâãéèêíìîóòôõúùûç]+(?:\s+[A-ZÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ][a-záàâãéèêíìîóòôõúùûç]+)*)/);
+if (nameMatch) result.name = nameMatch[1];
+
+// Age
+const ageMatch = t.match(/(\d+)\s*anos?/);
+if (ageMatch) result.age = parseInt(ageMatch[1]);
+
+// Gender
+if (t.includes(‘feminino’) || t.includes(‘mulher’) || t.includes(‘senhora’)) result.gender = ‘F’;
+else if (t.includes(‘masculino’) || t.includes(‘homem’) || t.includes(‘senhor’)) result.gender = ‘M’;
+
+// Sessions per week
+const sessMatch = t.match(/(\d+)\s*sess[oõ]es?\s*(?:por\s*)?semana/) || t.match(/(\d+)x\s*semana/);
+if (sessMatch) result.sessionsWeek = parseInt(sessMatch[1]);
+
+// Weight
+const weightMatch = t.match(/(\d+(?:[.,]\d+)?)\s*kg/) || t.match(/(\d+(?:[.,]\d+)?)\s*quilos?/);
+if (weightMatch) result.weight = parseFloat(weightMatch[1].replace(’,’,’.’));
+
+// Height
+const heightMatch = t.match(/(\d{3})\s*cm/) || t.match(/(\d+(?:[.,]\d+)?)\s*(?:metros?|m)(?:\s|$)/);
+if (heightMatch) {
+let h = parseFloat(heightMatch[1].replace(’,’,’.’));
+if (h < 3) h = Math.round(h * 100); // convert meters to cm
+result.height = h;
+}
+
+// Goal
+if (t.match(/hipertrofia|ganho muscular|crescimento/)) result.goal = ‘hipertrofia’;
+else if (t.match(/perda de gordura|emagrecer|perder peso|defini/)) result.goal = ‘perda_gordura’;
+else if (t.match(/for[cç]a/)) result.goal = ‘forca’;
+else if (t.match(/sa[uú]de|bem.estar/)) result.goal = ‘saude’;
+else if (t.match(/recomposi/)) result.goal = ‘recomposicao’;
+else if (t.match(/resist[eê]ncia/)) result.goal = ‘resistencia’;
+
+// Experience
+if (t.match(/avan[cç]ado|mais de 3 anos|muito experiente/)) result.experience = ‘avancado’;
+else if (t.match(/interm[eé]dio|1.?3 anos|alguma experi/)) result.experience = ‘intermedio’;
+else if (t.match(/iniciante|principiante|menos de 1 ano|come[cç]ou/)) result.experience = ‘iniciante’;
+else if (t.match(/sedent[aá]rio|sem hist[oó]rico|nunca treinou/)) result.experience = ‘sedentario’;
+
+// Limitations
+const limitations = [];
+if (t.match(/lombalgia|dores? nas costas|h[eé]rnia/)) limitations.push(‘lombalgia’);
+if (t.match(/joelho/)) limitations.push(‘joelho’);
+if (t.match(/ombro/)) limitations.push(‘ombro’);
+if (t.match(/hipertens[aã]o|tens[aã]o alta/)) limitations.push(‘hipertensao’);
+if (t.match(/diabetes/)) limitations.push(‘diabetes’);
+if (t.match(/card[íi]aco|cora[cç][aã]o/)) limitations.push(‘cardio’);
+if (t.match(/osteoporose/)) limitations.push(‘osteoporose’);
+if (t.match(/gr[aá]vida|gravidez|p[oó]s.parto/)) limitations.push(‘gravidez’);
+if (limitations.length) result.limitations = limitations;
+
+return Object.keys(result).length > 0 ? result : null;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById(‘f-equipment-custom-input’).addEventListener(‘keydown’, function(e) {
+if (e.key === ‘Enter’) { e.preventDefault(); addCustomEquipment(); }
+});
+renderDashboard();
+document.getElementById(‘topbar-action’).style.display = ‘’;
+
+// Show a-Shell banner if running from file:// (microfone não funciona)
+if (window.location.protocol === ‘file:’) {
+document.getElementById(‘ashell-banner’).style.display = ‘block’;
+// Set the localhost link to point to same filename on localhost:8080
+const filename = window.location.pathname.split(’/’).pop();
+document.getElementById(‘localhost-link’).href = ‘http://localhost:8080/’ + filename;
+}
+</script>
+
+<!-- FEEDBACK FORM OVERLAY -->
+
+<div class="form-overlay" id="feedback-form-overlay">
+  <div class="form-panel" style="max-width:520px">
+    <div class="form-header">
+      <h2>Feedback da Sessão</h2>
+      <button class="close-btn" onclick="closeFeedbackForm()">✕</button>
+    </div>
+    <div class="form-body">
+      <div class="form-section">
+        <div class="form-section-title">Sessão</div>
+        <div class="form-row">
+          <div class="field">
+            <label>Cliente</label>
+            <select id="fb-client" onchange="populateFeedbackSessions()"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%">
+              <option value="">Seleciona...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Sessão</label>
+            <select id="fb-session"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%">
+              <option value="">Seleciona...</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+```
+  <div class="form-section">
+    <div class="form-section-title">Como foi o treino?</div>
+
+    <div class="field" style="margin-bottom:20px">
+      <label>Humor / Disposição</label>
+      <div class="emoji-selector" id="fb-mood-selector">
+        <button class="emoji-btn" data-val="1" onclick="selectEmoji('mood',this)">😞</button>
+        <button class="emoji-btn" data-val="2" onclick="selectEmoji('mood',this)">😕</button>
+        <button class="emoji-btn" data-val="3" onclick="selectEmoji('mood',this)">😐</button>
+        <button class="emoji-btn" data-val="4" onclick="selectEmoji('mood',this)">🙂</button>
+        <button class="emoji-btn" data-val="5" onclick="selectEmoji('mood',this)">😄</button>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:20px">
+      <label>Nível de Esforço Percebido — RPE geral: <span id="fb-effort-val" style="color:var(--accent);font-weight:700">7</span>/10</label>
+      <input type="range" class="scale-slider" id="fb-effort" min="1" max="10" value="7"
+        oninput="document.getElementById('fb-effort-val').textContent=this.value">
+    </div>
+
+    <div class="field" style="margin-bottom:20px">
+      <label>Dor / Desconforto: <span id="fb-pain-val" style="color:var(--accent);font-weight:700">0</span>/10</label>
+      <input type="range" class="scale-slider" id="fb-pain" min="0" max="10" value="0"
+        oninput="document.getElementById('fb-pain-val').textContent=this.value">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">0 = sem dor · 10 = dor intensa</div>
+    </div>
+
+    <div class="field" style="margin-bottom:20px">
+      <label>Qualidade do Sono (noite anterior): <span id="fb-sleep-val" style="color:var(--accent);font-weight:700">3</span>/5</label>
+      <input type="range" class="scale-slider" id="fb-sleep" min="1" max="5" value="3"
+        oninput="document.getElementById('fb-sleep-val').textContent=this.value">
+    </div>
+
+    <div class="field">
+      <label>Notas do cliente</label>
+      <textarea id="fb-notes" placeholder="Ex: senti dificuldade no agachamento, energia boa, dor no ombro direito..."
+        style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%;min-height:80px;resize:vertical"></textarea>
+    </div>
+  </div>
+</div>
+<div class="form-footer">
+  <button class="btn btn-secondary" onclick="closeFeedbackForm()">Cancelar</button>
+  <button class="btn btn-primary" onclick="saveFeedback()">Guardar Feedback</button>
+</div>
+```
+
+  </div>
+</div>
+
+</body>
+</html>
